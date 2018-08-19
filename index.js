@@ -8,6 +8,11 @@ const app = express()
 
 app.use(bodyParser.text());
 
+if (!process.env.AUTH_HEADER) {
+  console.log('AUTH_HEADER not set')
+  process.exit(1)
+}
+
 app.post('/', async (req, res) => {
   if (req.header('auth') !== process.env.AUTH_HEADER) {
     return res.status(401).send('Authentication failed!')
