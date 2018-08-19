@@ -9,6 +9,9 @@ const app = express()
 app.use(bodyParser.text());
 
 app.post('/', async (req, res) => {
+  if (req.header('auth') !== process.env.AUTH_HEADER) {
+    return res.status(401).send('Authentication failed!')
+  }
   const db = await dbPromise
   let results = await db.get('SELECT id FROM urls WHERE url = ?', req.body)
   if (results) {
@@ -27,6 +30,9 @@ app.post('/', async (req, res) => {
 })
 
 app.post('/:id', async (req, res) => {
+  if (req.header('auth') !== process.env.AUTH_HEADER) {
+    return res.status(401).send('Authentication failed!')
+  }
   const db = await dbPromise
   const url = await db.get('SELECT url FROM urls WHERE id = ?', req.params.id)
   if (url) {
