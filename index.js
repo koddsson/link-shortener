@@ -13,6 +13,11 @@ if (!process.env.AUTH_HEADER) {
   process.exit(1)
 }
 
+if (!process.env.BASE_URL) {
+  console.log('BASE_URL not set')
+  process.exit(1)
+}
+
 app.post('/', async (req, res) => {
   if (req.header('auth') !== process.env.AUTH_HEADER) {
     return res.status(401).send('Authentication failed!')
@@ -23,7 +28,7 @@ app.post('/', async (req, res) => {
   const db = await dbPromise
   let results = await db.get('SELECT id FROM urls WHERE url = ?', req.body)
   if (results) {
-    return res.redirect(`https://k8.is/${results.id}`)
+    return res.redirect(`${process.env.BASE_URL}/${results.id}`)
   }
 
   let id = Math.random().toString(36).slice(2)
@@ -34,7 +39,7 @@ app.post('/', async (req, res) => {
   }
 
   await db.run('INSERT INTO urls VALUES(?, ?);', id, req.body)
-  res.redirect(`https://k8.is/${id}`)
+  res.redirect(`${process.env.BASE_URL}/${id}`)
 })
 
 app.post('/:id', async (req, res) => {
@@ -50,7 +55,7 @@ app.post('/:id', async (req, res) => {
     res.status(409).send('Already a URL with that id!')
   } else {
     await db.run('INSERT INTO urls VALUES(?, ?);', req.params.id, req.body)
-    res.redirect(`https://k8.is/${req.params.id}`)
+    res.redirect(`${process.env.BASE_URL}/${req.params.id}`)
   }
 })
 
