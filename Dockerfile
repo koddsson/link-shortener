@@ -19,6 +19,4 @@ EXPOSE 3000
 
 RUN ["apt-get", "update"]
 RUN ["apt-get", "install", "-y", "sqlite3"]
-RUN sqlite3 urls.db < urls.sql
-RUN sqlite3 urls.db < stats.sql
 CMD [ "npm", "start" ]
