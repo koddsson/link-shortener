@@ -15,6 +15,9 @@ app.post('/', bodyParser.text(), async (req, res) => {
   if (req.header('auth') !== process.env.AUTH_HEADER) {
     return res.status(401).send('Authentication failed!')
   }
+  if (typeof req.body !== 'string') {
+    return res.status(400).send('Expecting Content-Type: text/plain')
+  }
   if (!req.body.includes('http')) {
     return res.status(400).send('Protocol missing')
   }
@@ -38,6 +41,9 @@ app.post('/', bodyParser.text(), async (req, res) => {
 app.post('/:id', bodyParser.text(), async (req, res) => {
   if (req.header('auth') !== process.env.AUTH_HEADER) {
     return res.status(401).send('Authentication failed!')
+  }
+  if (typeof req.body !== 'string') {
+    return res.status(400).send('Expecting Content-Type: text/plain')
   }
   if (!req.body.includes('http')) {
     return res.status(400).send('Protocol missing')
