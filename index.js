@@ -92,7 +92,7 @@ class UrlsTable {
         exists = await this.hasId(id)
       }
     }
-    await (await this.db).run('INSERT INTO urls VALUES(?, ?)', id, url)
+    await (await this.db).run('INSERT INTO urls VALUES(?, ?, datetime("now"))', id, url)
     urlByIdCache[id] = url
     idByUrlCache[url] = id
     return {id, url}
@@ -108,7 +108,7 @@ class StatsTable {
   async add(id, status, meta) {
     id = String(id)
     status = Number(status)
-    await (await this.db).run('INSERT INTO stats VALUES(?, ?, ?)', id, status, JSON.stringify(meta))
+    await (await this.db).run('INSERT INTO stats VALUES(?, ?, ?, datetime("now"))', id, status, JSON.stringify(meta))
     return {id, status, meta}
   }
 }
