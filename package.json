@@ -15,6 +15,7 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
+    "sql-template-strings": "^2.2.2",
     "sqlite": "^3.0.0"
   }
 }

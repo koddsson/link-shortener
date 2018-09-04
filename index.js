@@ -1,5 +1,6 @@
 const express = require('express')
 const sqlite = require('sqlite')
+const SQL = require('sql-template-strings')
 const bodyParser = require('body-parser')
 const debug = require('debug')('link-shortener')
 const {randomBytes} = require('crypto')
@@ -66,20 +67,20 @@ class UrlsTable {
 
   async getById(id) {
     if (id in urlByIdCache) return { id, url: urlByIdCache[id] }
-    const result = (await this.db).get('SELECT url,id FROM urls WHERE id = ? LIMIT 1', String(id))
+    const result = (await this.db).get(SQL`SELECT url,id FROM urls WHERE id = ${String(id)} LIMIT 1`)
     if (result) urlByIdCache[result.id] = result.url
     return result
   }
 
   async getByUrl(url) {
     if (url in idByUrlCache) return { url, id: idByUrlCache[url] }
-    const result = (await this.db).get('SELECT url,id FROM urls WHERE url = ? LIMIT 1', String(url))
+    const result = (await this.db).get(SQL`SELECT url,id FROM urls WHERE url = ${String(url)} LIMIT 1`)
     if (result) idByUrlCache[result.url] = result.id
     return result
   }
 
   async hasId(id) {
-    return id in urlByIdCache || (await (await this.db).get('SELECT COUNT(id) FROM urls WHERE id = ?', String(id))) > 0
+    return id in urlByIdCache || (await (await this.db).get(SQL`SELECT COUNT(id) FROM urls WHERE id = ${String(id)}`)) > 0
   }
 
   async add(url, id) {
@@ -92,7 +93,7 @@ class UrlsTable {
         exists = await this.hasId(id)
       }
     }
-    await (await this.db).run('INSERT INTO urls VALUES(?, ?, datetime("now"))', id, url)
+    await (await this.db).run(SQL`INSERT INTO urls VALUES(${id}, ${url}, datetime("now"))`)
     urlByIdCache[id] = url
     idByUrlCache[url] = id
     return {id, url}
@@ -107,14 +108,14 @@ class StatsTable {
 
   async getById(id) {
     const db = await this.db
-    const rows = await (await this.db).all('SELECT status,headers,created_at FROM stats WHERE urlId = ?', String(id))
+    const rows = await (await this.db).all(SQL`SELECT status,headers,created_at FROM stats WHERE urlId = ${String(id)}`)
     return rows.map(({created_at, headers, status}) => Object.assign(JSON.parse(headers), { date: new Date(created_at), status }))
   }
 
   async add(id, status, meta) {
     id = String(id)
     status = Number(status)
-    await (await this.db).run('INSERT INTO stats VALUES(?, ?, ?, datetime("now"))', id, status, JSON.stringify(meta))
+    await (await this.db).run(SQL`INSERT INTO stats VALUES(${id}, ${status}, ${JSON.stringify(meta)}, datetime("now"))`)
     return {id, status, meta}
   }
 }
