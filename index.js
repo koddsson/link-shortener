@@ -12,10 +12,14 @@ if (!process.env.AUTH_HEADER) {
   process.exit(1)
 }
 
-app.post('/', bodyParser.text(), async (req, res) => {
+function auth(req, res, next) {
   if (req.header('auth') !== process.env.AUTH_HEADER) {
     return res.status(401).send('Authentication failed!')
   }
+  next()
+}
+
+app.post('/', bodyParser.text(), auth, async (req, res) => {
   if (typeof req.body !== 'string') {
     return res.status(400).send('Expecting Content-Type: text/plain')
   }
@@ -41,9 +45,6 @@ app.post('/', bodyParser.text(), async (req, res) => {
 })
 
 app.post('/:id', bodyParser.text(), async (req, res) => {
-  if (req.header('auth') !== process.env.AUTH_HEADER) {
-    return res.status(401).send('Authentication failed!')
-  }
   if (typeof req.body !== 'string') {
     return res.status(400).send('Expecting Content-Type: text/plain')
   }
