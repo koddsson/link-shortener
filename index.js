@@ -6,8 +6,6 @@ const dbPromise = sqlite.open('./urls.db', { Promise })
 const port = process.env.PORT || 3000
 const app = express()
 
-app.use(bodyParser.text());
-
 if (!process.env.AUTH_HEADER) {
   console.log('AUTH_HEADER not set')
   process.exit(1)
@@ -18,7 +16,7 @@ if (!process.env.BASE_URL) {
   process.exit(1)
 }
 
-app.post('/', async (req, res) => {
+app.post('/', bodyParser.text(), async (req, res) => {
   if (req.header('auth') !== process.env.AUTH_HEADER) {
     return res.status(401).send('Authentication failed!')
   }
@@ -42,7 +40,7 @@ app.post('/', async (req, res) => {
   res.redirect(`${process.env.BASE_URL}/${id}`)
 })
 
-app.post('/:id', async (req, res) => {
+app.post('/:id', bodyParser.text(), async (req, res) => {
   if (req.header('auth') !== process.env.AUTH_HEADER) {
     return res.status(401).send('Authentication failed!')
   }
