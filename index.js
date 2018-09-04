@@ -105,6 +105,12 @@ class StatsTable {
     this.db = db
   }
 
+  async getById(id) {
+    const db = await this.db
+    const rows = await (await this.db).all('SELECT status,headers,created_at FROM stats WHERE urlId = ?', String(id))
+    return rows.map(({created_at, headers, status}) => Object.assign(JSON.parse(headers), { date: new Date(created_at), status }))
+  }
+
   async add(id, status, meta) {
     id = String(id)
     status = Number(status)
@@ -159,6 +165,27 @@ app.get('/:id', asyncHandler(async (req, res) => {
       default: () => res.send(`Could not find ${id}`),
     })
   }
+}))
+
+app.get('/stats/:id', auth, asyncHandler(async (req, res) => {
+  const result = await (new UrlsTable(dbPromise).getById(req.params.id))
+  if (!result) {
+    status = 404
+    res.status(status)
+    res.format({
+      'application/json': () => res.send({ code: status }),
+      'text/html': () => res.render('404'),
+      default: () => res.send(`Could not find ${id}`),
+    })
+    return
+  }
+  const stats = await (new StatsTable(dbPromise)).getById(req.params.id)
+  const json = { url: result.url, stats }
+  res.format({
+    'application/json': () => res.send(json),
+    'text/html': () => res.render('redirect', json),
+    default: () => res.send(`Try requesting JSON or HTML :)`),
+  })
 }))
 
 app.listen(port)
