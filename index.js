@@ -19,19 +19,30 @@ function auth(req, res, next) {
   next()
 }
 
-function urlFromBody(req, res, next) {
-  if (typeof req.body !== 'string') {
-    return res.status(400).send('Expecting Content-Type: text/plain')
-  }
-  if (!req.body.includes('http')) {
-    return res.status(400).send('Protocol missing')
-  }
-  next()
+function urlFromBody() {
+  return [
+    bodyParser.text(),
+    (req, res, next) => {
+      debug('extract url from body')
+      let url = ''
+      if (req.is('text')) {
+        url = req.body.toString('utf-8')
+      } else {
+        return res.status(400).send('Expecting Content-Type: text/plain')
+      }
+      if (!url.includes('http')) {
+        return res.status(400).send('Protocol missing')
+      }
+      req.params = Object.assign(req.params || {}, { url })
+      next()
+    }
+  ]
 }
 
-app.post('/', bodyParser.text(), auth, urlFromBody, async (req, res) => {
+app.post('/', auth, urlFromBody(), async (req, res) => {
+  const {url} = req.params
   const db = await dbPromise
-  let results = await db.get('SELECT id FROM urls WHERE url = ?', req.body)
+  let results = await db.get('SELECT id FROM urls WHERE url = ?', url)
   debug(`got results: ${JSON.stringify(results)}`)
   if (results) {
     return res.redirect(`${results.id}`)
@@ -44,17 +55,17 @@ app.post('/', bodyParser.text(), auth, urlFromBody, async (req, res) => {
     id = Math.random().toString(36).slice(2)
   }
 
-  await db.run('INSERT INTO urls VALUES(?, ?);', id, req.body)
+  await db.run('INSERT INTO urls VALUES(?, ?);', id, url)
   res.redirect(`${id}`)
 })
 
-app.post('/:id', bodyParser.text(), urlFromBody, async (req, res) => {
+app.post('/:id', urlFromBody(), async (req, res) => {
   const db = await dbPromise
   const url = await db.get('SELECT url FROM urls WHERE id = ?', req.params.id)
   if (url) {
     res.status(409).send('Already a URL with that id!')
   } else {
-    await db.run('INSERT INTO urls VALUES(?, ?);', req.params.id, req.body)
+    await db.run('INSERT INTO urls VALUES(?, ?);', req.params.id, req.params.url)
     res.redirect(`${req.params.id}`)
   }
 })
