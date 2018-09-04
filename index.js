@@ -2,6 +2,7 @@ const express = require('express')
 const sqlite = require('sqlite')
 const bodyParser = require('body-parser')
 const debug = require('debug')('link-shortener')
+const {randomBytes} = require('crypto')
 const {URL} = require('url')
 
 const dbPromise = sqlite.open('./urls.db', { Promise })
@@ -72,14 +73,14 @@ class UrlsTable {
 
   async add(url, id) {
     url = String(url)
+    id = String(id || '')
     if (!id) {
       let exists = true
       while(exists) {
-        id = Math.random().toString(36).slice(2)
+        id += randomBytes(1).toString('hex')
         exists = await this.hasId(id)
       }
     }
-    id = String(id)
     await (await this.db).run('INSERT INTO urls VALUES(?, ?)', id, url)
     return {id, url}
   }
