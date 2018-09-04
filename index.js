@@ -24,6 +24,7 @@ function urlFromBody() {
   return [
     bodyParser.text(),
     bodyParser.json(),
+    bodyParser.urlencoded(),
     (req, res, next) => {
       debug('extract url from body')
       let url = ''
@@ -33,6 +34,9 @@ function urlFromBody() {
       } else if (req.is('json')) {
         url = req.body.url
         debug(`Found url as json: ${url}`)
+      } else if (req.is('urlencoded')) {
+        url = req.body.url
+        debug(`Found url as urlencoded: ${url}`)
       } else {
         return res.status(400).send('Expecting Content-Type: text/plain')
       }
