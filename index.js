@@ -19,13 +19,17 @@ function auth(req, res, next) {
   next()
 }
 
-app.post('/', bodyParser.text(), auth, async (req, res) => {
+function urlFromBody(req, res, next) {
   if (typeof req.body !== 'string') {
     return res.status(400).send('Expecting Content-Type: text/plain')
   }
   if (!req.body.includes('http')) {
     return res.status(400).send('Protocol missing')
   }
+  next()
+}
+
+app.post('/', bodyParser.text(), auth, urlFromBody, async (req, res) => {
   const db = await dbPromise
   let results = await db.get('SELECT id FROM urls WHERE url = ?', req.body)
   debug(`got results: ${JSON.stringify(results)}`)
@@ -44,13 +48,7 @@ app.post('/', bodyParser.text(), auth, async (req, res) => {
   res.redirect(`${id}`)
 })
 
-app.post('/:id', bodyParser.text(), async (req, res) => {
-  if (typeof req.body !== 'string') {
-    return res.status(400).send('Expecting Content-Type: text/plain')
-  }
-  if (!req.body.includes('http')) {
-    return res.status(400).send('Protocol missing')
-  }
+app.post('/:id', bodyParser.text(), urlFromBody, async (req, res) => {
   const db = await dbPromise
   const url = await db.get('SELECT url FROM urls WHERE id = ?', req.params.id)
   if (url) {
