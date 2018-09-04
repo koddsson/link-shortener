@@ -53,47 +53,65 @@ function urlFromBody() {
   ]
 }
 
+class UrlsTable {
+  constructor(db) {
+    this.db = db
+  }
+
+  async getById(id) {
+    return (await this.db).get('SELECT url,id FROM urls WHERE id = ? LIMIT 1', String(id))
+  }
+
+  async getByUrl(url) {
+    return (await this.db).get('SELECT url,id FROM urls WHERE url = ? LIMIT 1', String(url))
+  }
+
+  async hasId(id) {
+    return (await (await this.db).get('SELECT COUNT(id) FROM urls WHERE id = ?', String(id))) > 0
+  }
+
+  async add(url, id) {
+    return (await this.db).run('INSERT INTO urls VALUES(?, ?)', String(id), String(url))
+  }
+
+}
+
 app.post('/', auth, urlFromBody(), asyncHandler(async (req, res) => {
-  const {url} = req.params
-  const db = await dbPromise
-  let results = await db.get('SELECT id FROM urls WHERE url = ?', String(url))
-  debug(`got results: ${JSON.stringify(results)}`)
-  if (results) {
-    return res.redirect(`${results.id}`)
+  const urls = new UrlsTable(dbPromise)
+  const result = await urls.getByUrl(req.params.url)
+  if (result) {
+    return res.redirect(`${result.id}`)
   }
 
   let id = Math.random().toString(36).slice(2)
-  results = await db.get('SELECT id FROM urls WHERE id = ?', id)
-  while(results) {
-    results = await db.get('SELECT id FROM urls WHERE id = ?', id)
+  let exists = await urls.hasId(id)
+  while(exists) {
+    exists = await urls.hasId(id)
     id = Math.random().toString(36).slice(2)
   }
 
-  await db.run('INSERT INTO urls VALUES(?, ?);', id, String(url))
+  await urls.add(req.params.url, id)
   res.redirect(`${id}`)
 }))
 
 app.post('/:id', urlFromBody(), asyncHandler(async (req, res) => {
-  const db = await dbPromise
-  const url = await db.get('SELECT url FROM urls WHERE id = ?', req.params.id)
-  if (url) {
-    res.status(409).send('Already a URL with that id!')
-  } else {
-    await db.run('INSERT INTO urls VALUES(?, ?);', req.params.id, String(req.params.url))
-    res.redirect(`${req.params.id}`)
+  const urls = new UrlsTable(dbPromise)
+  const result = await urls.getByUrl(req.params.url)
+  if (result) {
+    return res.status(409).send('Already a URL with that id!')
   }
+  const {id} = urls.add(req.params.url, req.params.id)
+  res.redirect(`${id}`)
 }))
 
 app.get('/:id', asyncHandler(async (req, res) => {
-  const db = await dbPromise
-  const results = await db.get('SELECT url FROM urls WHERE id = ?', req.params.id)
-  debug(`got results ${JSON.stringify(results)}`)
-  if (results) {
-    res.redirect(results.url)
-    await db.run('INSERT INTO stats VALUES(?, ?, ?);', req.params.id, 200, JSON.stringify(req.headers))
+  const result = await (new UrlsTable(dbPromise).getById(req.params.id))
+  if (result) {
+    res.redirect(result.url)
+    await (await dbPromise).run('INSERT INTO stats VALUES(?, ?, ?);', result.id, 200, JSON.stringify(req.headers))
   } else {
     res.status(404).send("Sorry can't find that!")
-    await db.run('INSERT INTO stats VALUES(?, ?, ?);', req.params.id, 400, JSON.stringify(req.headers))
+    await (await dbPromise).run('INSERT INTO stats VALUES(?, ?, ?);', req.params.id, 400, JSON.stringify(req.headers))
   }
 }))
 
