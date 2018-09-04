@@ -87,6 +87,19 @@ class UrlsTable {
 
 }
 
+class StatsTable {
+  constructor(db) {
+    this.db = db
+  }
+
+  async add(id, status, meta) {
+    id = String(id)
+    status = Number(status)
+    await (await this.db).run('INSERT INTO stats VALUES(?, ?)', id, status, JSON.stringify(meta))
+    return {id, status, meta}
+  }
+}
+
 app.post('/:id?', urlFromBody(), asyncHandler(async (req, res) => {
   const urls = new UrlsTable(dbPromise)
   const result = await urls.getByUrl(req.params.url)
@@ -101,13 +114,16 @@ app.post('/:id?', urlFromBody(), asyncHandler(async (req, res) => {
 
 app.get('/:id', asyncHandler(async (req, res) => {
   const result = await (new UrlsTable(dbPromise).getById(req.params.id))
+  const stats = new StatsTable(dbPromise)
+  let status
   if (result) {
+    status = 200
     res.redirect(result.url)
-    await (await dbPromise).run('INSERT INTO stats VALUES(?, ?, ?);', result.id, 200, JSON.stringify(req.headers))
   } else {
+    status = 404
     res.status(404).send("Sorry can't find that!")
-    await (await dbPromise).run('INSERT INTO stats VALUES(?, ?, ?);', req.params.id, 400, JSON.stringify(req.headers))
   }
+  await stats.add(req.params.id, status, JSON.stringify(req.headers))
 }))
 
 app.listen(port)
