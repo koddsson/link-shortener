@@ -2,6 +2,7 @@ const express = require('express')
 const sqlite = require('sqlite')
 const bodyParser = require('body-parser')
 const debug = require('debug')('link-shortener')
+const {URL} = require('url')
 
 const dbPromise = sqlite.open('./urls.db', { Promise })
 const port = process.env.PORT || 3000
@@ -30,8 +31,10 @@ function urlFromBody() {
       } else {
         return res.status(400).send('Expecting Content-Type: text/plain')
       }
-      if (!url.includes('http')) {
-        return res.status(400).send('Protocol missing')
+      try {
+        url = new URL(url)
+      } catch(e) {
+        return res.status(400).send(`Malformed URL: ${url}`)
       }
       req.params = Object.assign(req.params || {}, { url })
       next()
@@ -42,7 +45,7 @@ function urlFromBody() {
 app.post('/', auth, urlFromBody(), async (req, res) => {
   const {url} = req.params
   const db = await dbPromise
-  let results = await db.get('SELECT id FROM urls WHERE url = ?', url)
+  let results = await db.get('SELECT id FROM urls WHERE url = ?', String(url))
   debug(`got results: ${JSON.stringify(results)}`)
   if (results) {
     return res.redirect(`${results.id}`)
@@ -55,7 +58,7 @@ app.post('/', auth, urlFromBody(), async (req, res) => {
     id = Math.random().toString(36).slice(2)
   }
 
-  await db.run('INSERT INTO urls VALUES(?, ?);', id, url)
+  await db.run('INSERT INTO urls VALUES(?, ?);', id, String(url))
   res.redirect(`${id}`)
 })
 
@@ -65,7 +68,7 @@ app.post('/:id', urlFromBody(), async (req, res) => {
   if (url) {
     res.status(409).send('Already a URL with that id!')
   } else {
-    await db.run('INSERT INTO urls VALUES(?, ?);', req.params.id, req.params.url)
+    await db.run('INSERT INTO urls VALUES(?, ?);', req.params.id, String(req.params.url))
     res.redirect(`${req.params.id}`)
   }
 })
