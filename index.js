@@ -19,7 +19,8 @@ if (!process.env.AUTH_HEADER) {
 const asyncHandler = fn => (req, res, next) => fn(req, res).catch(next)
 
 function auth(req, res, next) {
-  if (req.header('auth') !== process.env.AUTH_HEADER) {
+  if (req.header('authorization') !== process.env.AUTH_HEADER) {
+    debug(`Auth was ${req.header('authorization')}`)
     return res.status(401).send('Authentication failed!')
   }
   next()
@@ -102,7 +103,7 @@ class StatsTable {
   }
 }
 
-app.post('/:id?', urlFromBody(), asyncHandler(async (req, res) => {
+app.post('/:id?', auth, urlFromBody(), asyncHandler(async (req, res) => {
   const urls = new UrlsTable(dbPromise)
   const result = await urls.getByUrl(req.params.url)
   if (result) {
