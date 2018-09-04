@@ -95,7 +95,7 @@ class StatsTable {
   async add(id, status, meta) {
     id = String(id)
     status = Number(status)
-    await (await this.db).run('INSERT INTO stats VALUES(?, ?)', id, status, JSON.stringify(meta))
+    await (await this.db).run('INSERT INTO stats VALUES(?, ?, ?)', id, status, JSON.stringify(meta))
     return {id, status, meta}
   }
 }
@@ -103,10 +103,21 @@ class StatsTable {
 app.post('/:id?', urlFromBody(), asyncHandler(async (req, res) => {
   const urls = new UrlsTable(dbPromise)
   const result = await urls.getByUrl(req.params.url)
-  if (result && req.params.id) {
-    return res.status(409).send('Already a URL with that id!')
-  } else if (result) {
-    return res.redirect(`${result.id}`)
+  if (result) {
+    const conflict = Boolean(req.params.id)
+    let plainMessage
+    if (conflict) {
+      plainMessage = `${result.url} already exists under id ${result.id}`
+      res.status(409)
+    } else {
+      plainMessage = `Redirecting to ${result.url}`
+      res.redirect(`${result.id}`)
+    }
+    res.format({
+      'application/json': () => res.send(result),
+      'text/html': () => res.render('redirect', result),
+      default: () => res.send(plainMessage),
+    })
   }
   const {id} = urls.add(req.params.url, req.params.id)
   res.redirect(`${id}`)
@@ -116,14 +127,28 @@ app.get('/:id', asyncHandler(async (req, res) => {
   const result = await (new UrlsTable(dbPromise).getById(req.params.id))
   const stats = new StatsTable(dbPromise)
   let status
+  stats.add(req.params.id, status, req.headers).catch(error => {
+    console.log(`Could not save stats! ${error}`)
+  })
   if (result) {
-    status = 200
-    res.redirect(result.url)
+    status = 302
+    // Cannot use `res.redirect` and `res.format` in same path
+    res.status(status)
+    res.header('Location', result.url)
+    res.format({
+      'application/json': () => res.send(result),
+      'text/html': () => res.render('redirect', result),
+      default: () => res.send(`Redirecting to ${result.url}`),
+    })
   } else {
     status = 404
-    res.status(404).send("Sorry can't find that!")
+    res.status(status)
+    res.format({
+      'application/json': () => res.send({ code: status }),
+      'text/html': () => res.render('404'),
+      default: () => res.send(`Could not find ${id}`),
+    })
   }
-  await stats.add(req.params.id, status, JSON.stringify(req.headers))
 }))
 
 app.listen(port)
