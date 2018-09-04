@@ -9,6 +9,8 @@ const dbPromise = sqlite.open('./urls.db', { Promise })
 const port = process.env.PORT || 3000
 const app = express()
 
+app.set('x-powered-by', false)
+
 if (!process.env.AUTH_HEADER) {
   console.log('AUTH_HEADER not set')
   process.exit(1)
