@@ -13,6 +13,8 @@ if (!process.env.AUTH_HEADER) {
   process.exit(1)
 }
 
+const asyncHandler = fn => (req, res, next) => fn(req, res).catch(next)
+
 function auth(req, res, next) {
   if (req.header('auth') !== process.env.AUTH_HEADER) {
     return res.status(401).send('Authentication failed!')
@@ -51,7 +53,7 @@ function urlFromBody() {
   ]
 }
 
-app.post('/', auth, urlFromBody(), async (req, res) => {
+app.post('/', auth, urlFromBody(), asyncHandler(async (req, res) => {
   const {url} = req.params
   const db = await dbPromise
   let results = await db.get('SELECT id FROM urls WHERE url = ?', String(url))
@@ -69,9 +71,9 @@ app.post('/', auth, urlFromBody(), async (req, res) => {
 
   await db.run('INSERT INTO urls VALUES(?, ?);', id, String(url))
   res.redirect(`${id}`)
-})
+}))
 
-app.post('/:id', urlFromBody(), async (req, res) => {
+app.post('/:id', urlFromBody(), asyncHandler(async (req, res) => {
   const db = await dbPromise
   const url = await db.get('SELECT url FROM urls WHERE id = ?', req.params.id)
   if (url) {
@@ -80,9 +82,9 @@ app.post('/:id', urlFromBody(), async (req, res) => {
     await db.run('INSERT INTO urls VALUES(?, ?);', req.params.id, String(req.params.url))
     res.redirect(`${req.params.id}`)
   }
-})
+}))
 
-app.get('/:id', async (req, res) => {
+app.get('/:id', asyncHandler(async (req, res) => {
   const db = await dbPromise
   const results = await db.get('SELECT url FROM urls WHERE id = ?', req.params.id)
   debug(`got results ${JSON.stringify(results)}`)
@@ -93,6 +95,6 @@ app.get('/:id', async (req, res) => {
     res.status(404).send("Sorry can't find that!")
     await db.run('INSERT INTO stats VALUES(?, ?, ?);', req.params.id, 400, JSON.stringify(req.headers))
   }
-})
+}))
 
 app.listen(port)
