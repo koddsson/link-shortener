@@ -71,7 +71,17 @@ class UrlsTable {
   }
 
   async add(url, id) {
-    return (await this.db).run('INSERT INTO urls VALUES(?, ?)', String(id), String(url))
+    url = String(url)
+    if (!id) {
+      let exists = true
+      while(exists) {
+        id = Math.random().toString(36).slice(2)
+        exists = await this.hasId(id)
+      }
+    }
+    id = String(id)
+    await (await this.db).run('INSERT INTO urls VALUES(?, ?)', id, url)
+    return {id, url}
   }
 
 }
@@ -82,15 +92,7 @@ app.post('/', auth, urlFromBody(), asyncHandler(async (req, res) => {
   if (result) {
     return res.redirect(`${result.id}`)
   }
-
-  let id = Math.random().toString(36).slice(2)
-  let exists = await urls.hasId(id)
-  while(exists) {
-    exists = await urls.hasId(id)
-    id = Math.random().toString(36).slice(2)
-  }
-
-  await urls.add(req.params.url, id)
+  const {id} = await urls.add(req.params.url)
   res.redirect(`${id}`)
 }))
 
