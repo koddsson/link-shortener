@@ -1,6 +1,7 @@
 const express = require('express')
 const sqlite = require('sqlite')
 const bodyParser = require('body-parser')
+const debug = require('debug')('link-shortener')
 
 const dbPromise = sqlite.open('./urls.db', { Promise })
 const port = process.env.PORT || 3000
@@ -23,6 +24,7 @@ app.post('/', bodyParser.text(), async (req, res) => {
   }
   const db = await dbPromise
   let results = await db.get('SELECT id FROM urls WHERE url = ?', req.body)
+  debug(`got results: ${JSON.stringify(results)}`)
   if (results) {
     return res.redirect(`${results.id}`)
   }
@@ -61,6 +63,7 @@ app.post('/:id', bodyParser.text(), async (req, res) => {
 app.get('/:id', async (req, res) => {
   const db = await dbPromise
   const results = await db.get('SELECT url FROM urls WHERE id = ?', req.params.id)
+  debug(`got results ${JSON.stringify(results)}`)
   if (results) {
     res.redirect(results.url)
     await db.run('INSERT INTO stats VALUES(?, ?, ?);', req.params.id, 200, JSON.stringify(req.headers))
