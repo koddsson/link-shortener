@@ -139,14 +139,12 @@ app.post('/:id?', auth, urlFromBody(), asyncHandler(async (req, res) => {
 app.get('/:id', asyncHandler(async (req, res) => {
   const result = await (new UrlsTable(dbPromise).getById(req.params.id))
   const stats = new StatsTable(dbPromise)
-  let status
-  stats.add(req.params.id, status, req.headers).catch(error => {
+  stats.add(req.params.id, result ? 302 : 404, req.headers).catch(error => {
     console.log(`Could not save stats! ${error}`)
   })
   if (result) {
-    status = 302
     // Cannot use `res.redirect` and `res.format` in same path
-    res.status(status)
+    res.status(302)
     res.header('Location', result.url)
     res.format({
       'application/json': () => res.send(result),
@@ -154,10 +152,9 @@ app.get('/:id', asyncHandler(async (req, res) => {
       default: () => res.send(`Redirecting to ${result.url}`),
     })
   } else {
-    status = 404
-    res.status(status)
+    res.status(404)
     res.format({
-      'application/json': () => res.send({ code: status }),
+      'application/json': () => res.send({ code: 404 }),
       'text/html': () => res.render('404'),
       default: () => res.send(`Could not find ${id}`),
     })
