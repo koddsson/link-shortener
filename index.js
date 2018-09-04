@@ -87,21 +87,13 @@ class UrlsTable {
 
 }
 
-app.post('/', auth, urlFromBody(), asyncHandler(async (req, res) => {
+app.post('/:id?', urlFromBody(), asyncHandler(async (req, res) => {
   const urls = new UrlsTable(dbPromise)
   const result = await urls.getByUrl(req.params.url)
-  if (result) {
-    return res.redirect(`${result.id}`)
-  }
-  const {id} = await urls.add(req.params.url)
-  res.redirect(`${id}`)
-}))
-
-app.post('/:id', urlFromBody(), asyncHandler(async (req, res) => {
-  const urls = new UrlsTable(dbPromise)
-  const result = await urls.getByUrl(req.params.url)
-  if (result) {
+  if (result && req.params.id) {
     return res.status(409).send('Already a URL with that id!')
+  } else if (result) {
+    return res.redirect(`${result.id}`)
   }
   const {id} = urls.add(req.params.url, req.params.id)
   res.redirect(`${id}`)
