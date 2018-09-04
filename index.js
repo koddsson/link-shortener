@@ -188,4 +188,21 @@ app.get('/stats/:id', auth, asyncHandler(async (req, res) => {
   })
 }))
 
+app.get('/export/:table', auth, asyncHandler(async (req, res) => {
+  let sql = []
+  if (req.params.table == "stats") {
+    for (let stat of await (await dbPromise).all('SELECT * FROM stats')) {
+      sql.push(`INSERT INTO stats VALUES ("${stat.urlId}", ${stat.status}, '${stat.headers}', "${stat.created_at}");`)
+    }
+  } else if (req.params.table == "urls") {
+    for (url of await (await dbPromise).all('SELECT * FROM urls')) {
+      sql.push(`\nINSERT INTO urls VALUES ("${url.id}", "${url.url}", "${url.created_at}");`)
+    }
+  } else {
+    return next()
+  }
+  res.set("Accept", "application/sql")
+  res.send(sql.join('\n'))
+}))
+
 app.listen(port)
