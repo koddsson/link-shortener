@@ -57,21 +57,29 @@ function urlFromBody() {
   ]
 }
 
+const urlByIdCache = {}
+const idByUrlCache = {}
 class UrlsTable {
   constructor(db) {
     this.db = db
   }
 
   async getById(id) {
-    return (await this.db).get('SELECT url,id FROM urls WHERE id = ? LIMIT 1', String(id))
+    if (id in urlByIdCache) return { id, url: urlByIdCache[id] }
+    const result = (await this.db).get('SELECT url,id FROM urls WHERE id = ? LIMIT 1', String(id))
+    if (result) urlByIdCache[result.id] = result.url
+    return result
   }
 
   async getByUrl(url) {
-    return (await this.db).get('SELECT url,id FROM urls WHERE url = ? LIMIT 1', String(url))
+    if (url in idByUrlCache) return { url, id: idByUrlCache[url] }
+    const result = (await this.db).get('SELECT url,id FROM urls WHERE url = ? LIMIT 1', String(url))
+    if (result) idByUrlCache[result.url] = result.id
+    return result
   }
 
   async hasId(id) {
-    return (await (await this.db).get('SELECT COUNT(id) FROM urls WHERE id = ?', String(id))) > 0
+    return id in urlByIdCache || (await (await this.db).get('SELECT COUNT(id) FROM urls WHERE id = ?', String(id))) > 0
   }
 
   async add(url, id) {
@@ -85,6 +93,8 @@ class UrlsTable {
       }
     }
     await (await this.db).run('INSERT INTO urls VALUES(?, ?)', id, url)
+    urlByIdCache[id] = url
+    idByUrlCache[url] = id
     return {id, url}
   }
 
