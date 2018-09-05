@@ -122,25 +122,26 @@ class StatsTable {
 
 app.post('/:id?', auth, urlFromBody(), asyncHandler(async (req, res) => {
   const urls = new UrlsTable(dbPromise)
-  const result = await urls.getByUrl(req.params.url)
-  if (result) {
-    const conflict = Boolean(req.params.id)
-    let plainMessage
-    if (conflict) {
-      plainMessage = `${result.url} already exists under id ${result.id}`
-      res.status(409)
-    } else {
-      plainMessage = `Redirecting to ${result.url}`
-      res.redirect(`${result.id}`)
-    }
-    res.format({
-      'application/json': () => res.send(result),
-      'text/html': () => res.render('redirect', result),
-      default: () => res.send(plainMessage),
-    })
+  let result = await urls.getByUrl(req.params.url)
+  const found = Boolean(result)
+  if (!result) {
+    result = await urls.add(req.params.url, req.params.id)
   }
-  const {id} = urls.add(req.params.url, req.params.id)
-  res.redirect(`${id}`)
+  const conflict = Boolean(found && req.params.id)
+  let plainMessage
+  if (conflict) {
+    plainMessage = `${result.url} already exists under id ${result.id}`
+    res.status(409)
+  } else {
+    plainMessage = `Redirecting to ${result.url}`
+    res.status(302)
+    res.header('Location', result.id)
+  }
+  res.format({
+    'application/json': () => res.send(result),
+    'text/html': () => res.render('redirect', result),
+    default: () => res.send(plainMessage),
+  })
 }))
 
 app.get('/:id', asyncHandler(async (req, res) => {
