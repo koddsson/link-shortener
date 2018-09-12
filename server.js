@@ -28,7 +28,7 @@ app.use(redirectWithoutAuth(mount(editLinks))) // POST /:id
 app.use(redirectWithoutAuth(mount('/_/stats', stats))) // GET /stats
 
 if (require.main === module) {
-  app.context.database = 'memory://1'
+  app.context.database = process.env.DB || 'memory://1'
   app.context.port = process.env.PORT || 3000
   app.listen(app.context.port, () => console.log(`up: http://localhost:${app.context.port}`))
 }
