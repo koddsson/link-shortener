@@ -9,7 +9,7 @@
   "main": "server.js",
   "scripts": {
     "postinstall": "npm run migrate",
-    "migrate": "node migrate.js",
+    "migrate": "node -r esm models.js",
     "start": "node -r esm $npm_package_main",
     "test": "mocha -r esm"
   },

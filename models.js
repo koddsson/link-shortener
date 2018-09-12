@@ -26,3 +26,10 @@ export class StatsTable {
   }
 
 }
+
+if (require.main === module) {
+  Promise.all([
+    new LinksTable(process.env.DB).migrate(),
+    new StatsTable(process.env.DB).migrate(),
+  ]).then(() => console.log(`Migrations complete`))
+}
