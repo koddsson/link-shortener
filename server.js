@@ -5,6 +5,7 @@ import session from './session'
 import {authMiddleware, redirectWithoutAuth, authRoute} from './auth'
 import links from './links'
 import editLinks from './editlinks'
+import stats from './stats'
 import createDebug from 'debug'
 const debug = createDebug('app')
 
@@ -24,6 +25,7 @@ app.use(authMiddleware({ token: process.env.AUTH }))
 app.use(mount(authRoute)) // /login
 app.use(mount(links))     // /:id
 app.use(redirectWithoutAuth(mount(editLinks))) // POST /:id
+app.use(redirectWithoutAuth(mount('/_/stats', stats))) // GET /stats
 
 if (require.main === module) {
   app.context.database = 'memory://1'
