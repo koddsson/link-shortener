@@ -13,10 +13,23 @@
     "start": "node $npm_package_main",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "prettier": {
+    "arrowParens": "avoid",
+    "bracketSpacing": true,
+    "printWidth": 120,
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false
+  },
   "dependencies": {
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "sql-template-strings": "^2.2.2",
     "sqlite": "^3.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^1.14.2"
   }
 }
