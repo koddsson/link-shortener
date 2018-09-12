@@ -1,4 +1,4 @@
-FROM node:8
+FROM node:10
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -8,15 +8,12 @@ WORKDIR /usr/src/app
 # where available (npm@5+)
 COPY package*.json ./
 
-RUN npm install
-# If you are building your code for production
-# RUN npm install --only=production
+RUN npm install --only=production
 
 # Bundle app source
 COPY . .
 
 EXPOSE 3000
 
-RUN ["apt-get", "update"]
-RUN ["apt-get", "install", "-y", "sqlite3"]
+RUN npm run migrate
 CMD [ "npm", "start" ]
