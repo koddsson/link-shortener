@@ -11,7 +11,7 @@
     "postinstall": "npm run migrate",
     "migrate": "node migrate.js",
     "start": "node -r esm $npm_package_main",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha -r esm"
   },
   "prettier": {
     "arrowParens": "avoid",
@@ -31,6 +31,9 @@
     "sqlite": "^3.0.0"
   },
   "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-http": "^4.2.0",
+    "mocha": "^5.2.0",
     "prettier": "^1.14.2"
   }
 }
