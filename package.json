@@ -24,9 +24,11 @@
     "useTabs": false
   },
   "dependencies": {
-    "body-parser": "^1.18.3",
     "esm": "^3.0.82",
-    "express": "^4.16.3",
+    "koa": "^2.5.2",
+    "koa-bodyparser": "^4.2.1",
+    "koa-mount": "^3.0.0",
+    "koa-route": "^3.2.0",
     "sql-template-strings": "^2.2.2",
     "sqlite": "^3.0.0"
   },
