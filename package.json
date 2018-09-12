@@ -2,17 +2,17 @@
   "name": "link-shortener",
   "version": "1.0.0",
   "description": "A link shortening service",
-  "main": "index.js",
-  "scripts": {
-    "start": "node $npm_package_main",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "migrate": "node migrate.js",
-    "postinstall": "npm run migrate"
-  },
   "keywords": [],
   "repository": "https://github.com/koddsson/link-shortener",
-  "author": "",
   "license": "ISC",
+  "author": "",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "npm run migrate",
+    "migrate": "node migrate.js",
+    "start": "node $npm_package_main",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
