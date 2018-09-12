@@ -6,7 +6,7 @@
   "repository": "https://github.com/koddsson/link-shortener",
   "license": "ISC",
   "author": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "postinstall": "npm run migrate",
     "migrate": "node migrate.js",
