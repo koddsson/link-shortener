@@ -10,7 +10,7 @@
   "scripts": {
     "migrate": "node -r esm models.js",
     "start": "node -r esm $npm_package_main",
-    "test": "mocha -r esm"
+    "test": "mocha -r esm --exit"
   },
   "prettier": {
     "arrowParens": "avoid",
