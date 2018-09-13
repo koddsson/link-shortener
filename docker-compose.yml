@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+
+  # Our app
+  link-shortener:
+    build: .
+    restart: always
+    ports:  
+      - 3000:3000
+    depends_on:
+      - postgres
+    env_file:
+      - ./.env
+
+  # Our DB
+  postgres:
+    image: postgres
+    restart: always
+    expose:  
+      - 5432
+    env_file:
+      - ./.env
