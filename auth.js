@@ -1,10 +1,10 @@
 import koa from 'koa'
 import bodyParser from 'koa-bodyparser'
-import {post} from 'koa-route'
+import { post } from 'koa-route'
 import createDebug from 'debug'
 const debug = createDebug('app:auth')
 
-export const authMiddleware = ({token}) => async (ctx, next) => {
+export const authMiddleware = ({ token }) => async (ctx, next) => {
   let userAuth = ctx.session.authorization
   const headerAuth = ctx.headers['authorization']
   if (!userAuth && headerAuth && headerAuth.startsWith('Bearer ')) {
@@ -21,7 +21,7 @@ export const authMiddleware = ({token}) => async (ctx, next) => {
   return next()
 }
 
-export const redirectWithoutAuth = (fn, {path = '/'} = {}) => async (ctx, next) => {
+export const redirectWithoutAuth = (fn, { path = '/' } = {}) => async (ctx, next) => {
   ctx.assert(ctx.session.loggedIn, 401)
   return fn(ctx, next)
 }
@@ -30,10 +30,12 @@ const app = new koa()
 
 app.use(bodyParser())
 
-app.use(post('/login', async (ctx, id) => {
-  ctx.session.authorization = ctx.request.body.authorization
-  debug('user attempted to login, redirecting')
-  ctx.redirect('/')
-}))
+app.use(
+  post('/login', async (ctx, id) => {
+    ctx.session.authorization = ctx.request.body.authorization
+    debug('user attempted to login, redirecting')
+    ctx.redirect('/')
+  })
+)
 
 export const authRoute = app

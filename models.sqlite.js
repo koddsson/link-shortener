@@ -85,7 +85,7 @@ export class StatsTable {
       throw new Error('countBy called with invalid column')
     }
     const rows = await (await this.db).all(`SELECT count(${column}) as v, ${column} as k FROM stats GROUP BY ${column}`)
-    return rows.reduce((obj, {k, v}) => {
+    return rows.reduce((obj, { k, v }) => {
       obj[k] = v
       return obj
     }, {})
@@ -99,9 +99,7 @@ export class StatsTable {
     if (status) sql.append(SQL`AND status = ${status}`)
     if (agent) sql.append(SQL`AND agent = ${agent}`)
     if (ip) sql.append(SQL`AND ip = ${ip}`)
-    return (await (await this.db).all(sql)).map(row =>
-      Object.assign(row, { created: new Date(row.created) })
-    )
+    return (await (await this.db).all(sql)).map(row => Object.assign(row, { created: new Date(row.created) }))
   }
 
   async add({ page, created = Date.now(), status, agent, ip }) {

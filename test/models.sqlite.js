@@ -155,8 +155,8 @@ describe('sqlite models', () => {
       await stats.add({ page: 'a', status: 200, agent: 'mocha', ip: '1.1.1.1' })
       await stats.add({ page: 'b', status: 200, agent: 'mocha', ip: '1.1.1.1' })
       expect(await stats.countBy('page')).to.deep.equal({
-        'a': 2,
-        'b': 1
+        a: 2,
+        b: 1,
       })
     })
 

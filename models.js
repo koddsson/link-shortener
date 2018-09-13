@@ -1,10 +1,9 @@
-import {URL} from 'url'
-import {LinksTable as PgLinksTable, StatsTable as PgStatsTable} from './models.postgres'
-import {LinksTable as SQLinksTable, StatsTable as SQStatsTable} from './models.sqlite'
-import {LinksTable as MemLinksTable, StatsTable as MemStatsTable} from './models.memory'
+import { URL } from 'url'
+import { LinksTable as PgLinksTable, StatsTable as PgStatsTable } from './models.postgres'
+import { LinksTable as SQLinksTable, StatsTable as SQStatsTable } from './models.sqlite'
+import { LinksTable as MemLinksTable, StatsTable as MemStatsTable } from './models.memory'
 
 export class LinksTable {
-
   constructor(url) {
     url = new URL(url)
     if (url.protocol === 'postgresql:') return new PgLinksTable(url.toString())
@@ -12,11 +11,9 @@ export class LinksTable {
     if (url.protocol === 'memory:') return new MemLinksTable(url.toString())
     throw new Error(`unknown database protocol ${url.protocol}`)
   }
-
 }
 
 export class StatsTable {
-
   constructor(url) {
     url = new URL(url)
     if (url.protocol === 'postgresql:') return new PgStatsTable(url.toString())
@@ -24,12 +21,10 @@ export class StatsTable {
     if (url.protocol === 'memory:') return new MemStatsTable(url.toString())
     throw new Error(`unknown database protocol ${url.protocol}`)
   }
-
 }
 
 if (require.main === module) {
-  Promise.all([
-    new LinksTable(process.env.DB).migrate(),
-    new StatsTable(process.env.DB).migrate(),
-  ]).then(() => console.log(`Migrations complete`))
+  Promise.all([new LinksTable(process.env.DB).migrate(), new StatsTable(process.env.DB).migrate()]).then(() =>
+    console.log(`Migrations complete`)
+  )
 }
