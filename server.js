@@ -27,6 +27,12 @@ app.use(mount(links))     // /:id
 app.use(redirectWithoutAuth(mount(editLinks))) // POST /:id
 app.use(redirectWithoutAuth(mount('/_/stats', stats))) // GET /stats
 
+app.use(async (ctx, next) => {
+  // Return a 415 (Unsupported media type) if Content-Type isn't JSON
+  ctx.assert(ctx.request.is('json'), 415)
+  await next()
+})
+
 if (require.main === module) {
   app.context.database = process.env.DB || 'memory://1'
   app.context.port = process.env.PORT || 3000
