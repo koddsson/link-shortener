@@ -12,6 +12,8 @@ app.use(bodyParser())
 app.use(
   post('/:id?', async (ctx, id) => {
     const url = ctx.request.body.url
+    ctx.assert(url, 400)
+
     debug(`asked to create link ${id} -> ${url}`)
     const links = new LinksTable(ctx.database)
 
