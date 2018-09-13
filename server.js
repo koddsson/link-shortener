@@ -1,8 +1,8 @@
 import koa from 'koa'
 import mount from 'koa-mount'
-import {get} from 'koa-route'
+import { get } from 'koa-route'
 import session from './session'
-import {authMiddleware, redirectWithoutAuth, authRoute} from './auth'
+import { authMiddleware, redirectWithoutAuth, authRoute } from './auth'
 import links from './links'
 import editLinks from './editlinks'
 import stats from './stats'
@@ -23,7 +23,7 @@ app.use(authMiddleware({ token: process.env.AUTH }))
 
 // Routes
 app.use(mount(authRoute)) // /login
-app.use(mount(links))     // /:id
+app.use(mount(links)) // /:id
 app.use(redirectWithoutAuth(mount(editLinks))) // POST /:id
 app.use(redirectWithoutAuth(mount('/_/stats', stats))) // GET /stats
 
@@ -32,4 +32,3 @@ if (require.main === module) {
   app.context.port = process.env.PORT || 3000
   app.listen(app.context.port, () => console.log(`up: http://localhost:${app.context.port}`))
 }
-

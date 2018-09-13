@@ -1,4 +1,4 @@
-import {randomBytes} from 'crypto'
+import { randomBytes } from 'crypto'
 import createDebug from 'debug'
 const debug = createDebug('app:session')
 
@@ -21,10 +21,10 @@ const defaultStore = {
   },
   delete: async token => {
     sessions.delete(token)
-  }
+  },
 }
 
-export default ({store = defaultStore} = {}) => async (ctx, next) => {
+export default ({ store = defaultStore } = {}) => async (ctx, next) => {
   debug('->session')
   let session = await store.read(ctx.cookies.get('s'))
   if (!session) {

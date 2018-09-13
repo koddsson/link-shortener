@@ -1,9 +1,9 @@
-import {URL} from 'url'
-import {randomBytes} from 'crypto'
-import {Pool} from 'pg'
+import { URL } from 'url'
+import { randomBytes } from 'crypto'
+import { Pool } from 'pg'
 import SQL from 'sql-template-strings'
-import {LinksTable as MemLinks} from './models.memory'
-import {LinksTable as SQLLinks, StatsTable as SQLStats} from './models.sqlite'
+import { LinksTable as MemLinks } from './models.memory'
+import { LinksTable as SQLLinks, StatsTable as SQLStats } from './models.sqlite'
 
 const dbs = {}
 const opendb = url => {
@@ -26,7 +26,7 @@ export class LinksTable {
         created date,
         url text
       )
-    `);
+    `)
   }
 
   async findBy({ id, url, created } = {}) {
@@ -85,7 +85,7 @@ export class StatsTable {
       throw new Error('countBy called with invalid column')
     }
     const rows = await this.db.query(`SELECT count(${column}) as v, ${column} as k FROM stats GROUP BY ${column}`)
-    return rows.reduce((obj, {k, v}) => {
+    return rows.reduce((obj, { k, v }) => {
       obj[k] = v
       return obj
     }, {})
@@ -99,9 +99,7 @@ export class StatsTable {
     if (status) sql.append(SQL`AND status = ${status}`)
     if (agent) sql.append(SQL`AND agent = ${agent}`)
     if (ip) sql.append(SQL`AND ip = ${ip}`)
-    return (await this.db.query(sql)).rows.map(row =>
-      Object.assign(row, { created: new Date(row.created) })
-    )
+    return (await this.db.query(sql)).rows.map(row => Object.assign(row, { created: new Date(row.created) }))
   }
 
   async add({ page, created = Date.now(), status, agent, ip }) {

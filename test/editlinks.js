@@ -138,5 +138,4 @@ describe('edit links app', () => {
         .deep.equal({ url: 'https://example.com', id: 'aa', created })
     })
   })
-
 })
