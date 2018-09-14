@@ -7,7 +7,7 @@ const debug = createDebug('app:editLinks')
 
 const app = new koa()
 
-app.use(bodyParser({ enableTypes: ['json', 'form', 'text']}))
+app.use(bodyParser({ enableTypes: ['json', 'form', 'text'] }))
 
 app.use(
   post('/:id?', async (ctx, id) => {
@@ -24,25 +24,34 @@ app.use(
 
     const conflict = Boolean(found && id)
     ctx.type = 'text'
-    ctx.set('location', result.id)
     if (conflict) {
       debug(`link ${id} -> ${url} conflicts with ${result.url}`)
-      ctx.body = `${result.url} already exists under id ${result.id}`
+      const error = `${result.url} already exists under id ${result.id}`
+      ctx.body = error
       ctx.status = 409
+
+      if (ctx.accepts('html')) {
+        ctx.body = `<!DOCTYPE html><html><head><title>Conflict</title><body>${error}</body></html>`
+        ctx.type = 'html'
+      } else if (ctx.accepts('json')) {
+        ctx.body = { error }
+        ctx.type = 'json'
+      }
     } else {
       debug(`link ${id} -> ${url} already exists at ${result.id}`)
       ctx.body = `Redirecting to ${result.id}`
+      ctx.set('location', result.id)
       ctx.status = 302
-    }
 
-    if (ctx.accepts('html')) {
-      ctx.body = `<!DOCTYPE html><html><head><title>Moved permanently</title><body><a href="${
-        result.url
-      }">moved here</a></body></html>`
-      ctx.type = 'html'
-    } else if (ctx.accepts('json')) {
-      ctx.body = result
-      ctx.type = 'json'
+      if (ctx.accepts('html')) {
+        ctx.body = `<!DOCTYPE html><html><head><title>Moved permanently</title><body><a href="${
+          result.url
+        }">moved here</a></body></html>`
+        ctx.type = 'html'
+      } else if (ctx.accepts('json')) {
+        ctx.body = result
+        ctx.type = 'json'
+      }
     }
   })
 )
