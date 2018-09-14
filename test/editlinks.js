@@ -28,6 +28,15 @@ describe('edit links app', () => {
         .and.have.header('location')
     })
 
+    it('rejects url encoded `url` field if url is empty', async () => {
+      const response = await app
+        .post('/')
+        .redirects(0)
+        .type('form')
+        .send({ url: '' })
+      expect(response).to.have.status(400)
+    })
+
     it('accepts and returns json encoded `url` field', async () => {
       const response = await app
         .post('/')
@@ -43,6 +52,16 @@ describe('edit links app', () => {
         .and.property('url', 'https://example.com')
     })
 
+    it('rejects json encoded `url` field if url is empty', async () => {
+      const response = await app
+        .post('/')
+        .redirects(0)
+        .type('json')
+        .accept('json')
+        .send({ url: '' })
+      expect(response).to.have.status(400)
+    })
+
     it('accepts plain text encoded `url` field', async () => {
       const response = await app
         .post('/')
@@ -55,6 +74,16 @@ describe('edit links app', () => {
         .and.have.header('location')
         .and.have.property('text')
         .that.contains('Redirecting to')
+    })
+
+    it('rejects plain text encoded `url` field if url is empty', async () => {
+      const response = await app
+        .post('/')
+        .redirects(0)
+        .type('text')
+        .accept('text')
+        .send('')
+      expect(response).to.have.status(400)
     })
 
     it('returns html if asked for it', async () => {
