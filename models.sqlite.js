@@ -12,20 +12,29 @@ const opendb = url => {
 
 export class LinksTable {
   constructor(url) {
+    this.url = url
     this.db = opendb(url)
     this.cache = new MemLinks(url)
   }
 
   async migrate() {
-    await this.cache.migrate()
-    await (await this.db).run(SQL`
-      CREATE TABLE IF NOT EXISTS links (
-        id varchar(128),
-        created text,
-        url text
-      );
-    `)
-    await (await this.db).run('PRAGMA user_version = 1;')
+    try {
+      await this.cache.migrate()
+      await (await this.db).run(SQL`
+        CREATE TABLE IF NOT EXISTS links (
+          id varchar(128),
+          created text,
+          url text
+        );
+      `)
+      await (await this.db).run('PRAGMA user_version = 1;')
+    } catch (error) {
+      if (error.code === 'SQLITE_CANTOPEN') {
+        console.log(`Unable to open database file: ${this.url}`)
+        process.exit(1)
+      }
+      throw error
+    }
   }
 
   async findBy({ id, url, created } = {}) {
@@ -64,20 +73,29 @@ export class LinksTable {
 
 export class StatsTable {
   constructor(url) {
+    this.url = url
     this.db = opendb(url)
   }
 
   async migrate() {
-    await (await this.db).run(`
-      CREATE TABLE IF NOT EXISTS stats (
-        page varchar(128),
-        created text,
-        status integer,
-        agent text,
-        ip text
-      );
-    `)
-    await (await this.db).run('PRAGMA user_version = 1;')
+    try {
+      await (await this.db).run(`
+        CREATE TABLE IF NOT EXISTS stats (
+          page varchar(128),
+          created text,
+          status integer,
+          agent text,
+          ip text
+        );
+      `)
+      await (await this.db).run('PRAGMA user_version = 1;')
+    } catch (error) {
+      if (error.code === 'SQLITE_CANTOPEN') {
+        console.log(`Unable to open database file: ${this.url}`)
+        process.exit(1)
+      }
+      throw error
+    }
   }
 
   async countBy(column) {
