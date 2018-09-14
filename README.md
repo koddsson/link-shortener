@@ -10,6 +10,19 @@ Install dependencies:
 npm install
 ```
 
+Copy the sample `.env` file and replace it with your settings
+
+```sh
+cp .env.sample .env
+$EDITOR .env
+```
+
+Run the migrations
+
+```sh
+npm run migrate
+```
+
 Start the application:
 
 ```sh

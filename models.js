@@ -2,6 +2,11 @@ import { URL } from 'url'
 import { LinksTable as PgLinksTable, StatsTable as PgStatsTable } from './models.postgres'
 import { LinksTable as SQLinksTable, StatsTable as SQStatsTable } from './models.sqlite'
 import { LinksTable as MemLinksTable, StatsTable as MemStatsTable } from './models.memory'
+import createDebug from 'debug'
+import dotenv from 'dotenv'
+
+const debug = createDebug('models')
+dotenv.config()
 
 export class LinksTable {
   constructor(url) {
@@ -24,6 +29,7 @@ export class StatsTable {
 }
 
 if (require.main === module) {
+  debug(`Migrating ${process.env.DB}`)
   Promise.all([new LinksTable(process.env.DB).migrate(), new StatsTable(process.env.DB).migrate()]).then(() =>
     console.log(`Migrations complete`)
   )
