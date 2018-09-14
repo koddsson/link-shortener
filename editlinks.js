@@ -7,7 +7,7 @@ const debug = createDebug('app:editLinks')
 
 const app = new koa()
 
-app.use(bodyParser())
+app.use(bodyParser({ enableTypes: ['json', 'form', 'text']}))
 
 app.use(
   post('/:id?', async (ctx, id) => {
