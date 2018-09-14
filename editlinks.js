@@ -11,7 +11,7 @@ app.use(bodyParser({ enableTypes: ['json', 'form', 'text']}))
 
 app.use(
   post('/:id?', async (ctx, id) => {
-    const url = ctx.request.body.url
+    const url = ctx.is('text') ? ctx.request.body : ctx.request.body.url
     ctx.assert(url, 400)
 
     debug(`asked to create link ${id} -> ${url}`)
