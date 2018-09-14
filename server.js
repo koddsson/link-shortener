@@ -8,6 +8,8 @@ import editLinks from './editlinks'
 import stats from './stats'
 import createDebug from 'debug'
 const debug = createDebug('app')
+import dotenv from 'dotenv'
+dotenv.config()
 
 const app = new koa()
 
