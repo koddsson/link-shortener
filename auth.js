@@ -31,7 +31,7 @@ const app = new koa()
 app.use(bodyParser())
 
 app.use(
-  post('/login', async (ctx, id) => {
+  post('/', async (ctx, id) => {
     ctx.session.authorization = ctx.request.body.authorization
     debug('user attempted to login, redirecting')
     ctx.redirect('/')

@@ -24,7 +24,7 @@ app.use(session())
 app.use(authMiddleware({ token: process.env.AUTH }))
 
 // Routes
-app.use(mount(authRoute)) // /login
+app.use(mount('/login', authRoute)) // /login
 app.use(mount(links)) // /:id
 app.use(redirectWithoutAuth(mount(editLinks))) // POST /:id
 app.use(redirectWithoutAuth(mount('/_/stats', stats))) // GET /stats
