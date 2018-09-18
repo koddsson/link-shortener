@@ -30,6 +30,7 @@
     "koa-mount": "^3.0.0",
     "koa-route": "^3.2.0",
     "pg": "^7.4.3",
+    "node-fetch": "^2.2.0",
     "sql-template-strings": "^2.2.2",
     "sqlite": "^3.0.0"
   },
