@@ -29,7 +29,6 @@
     "koa-bodyparser": "^4.2.1",
     "koa-mount": "^3.0.0",
     "koa-route": "^3.2.0",
-    "pg": "^7.4.3",
     "sql-template-strings": "^2.2.2",
     "sqlite": "^3.0.0"
   },
@@ -37,6 +36,7 @@
     "chai": "^4.1.2",
     "chai-http": "^4.2.0",
     "mocha": "^5.2.0",
+    "nock": "^10.0.0",
     "prettier": "^1.14.2"
   }
 }
