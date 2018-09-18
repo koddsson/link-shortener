@@ -1,5 +1,5 @@
 import editLinksApp from '../editlinks'
-import { LinksTable, StatsTable } from '../models'
+import { LinksTable } from '../models'
 import chai, { expect } from 'chai'
 import chaiHttp from 'chai-http'
 import { describe, it, beforeEach } from 'mocha'

@@ -1,6 +1,6 @@
 import koa from 'koa'
 import { post, get } from 'koa-route'
-import { LinksTable, StatsTable } from './models'
+import { LinksTable } from './models'
 import createDebug from 'debug'
 const debug = createDebug('app:links')
 
@@ -9,7 +9,6 @@ const app = new koa()
 app.use(
   get('/:id', async (ctx, id, next) => {
     const links = new LinksTable(ctx.database)
-    const stats = new StatsTable(ctx.database)
 
     let result = await links.findBy({ id })
     debug(result ? `found link ${id}` : `could not find link ${id} in table`)
@@ -33,10 +32,6 @@ app.use(
       ctx.body = `Redirecting to ${result.id}`
       ctx.type = 'text'
     }
-
-    stats.add({ page: id, status: ctx.status, agent: ctx.headers['user-agent'], ip: ctx.ip }).catch(e => {
-      console.log(`failed to add stats`)
-    })
   })
 )
 

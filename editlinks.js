@@ -1,7 +1,7 @@
 import koa from 'koa'
 import { post, get } from 'koa-route'
 import bodyParser from 'koa-bodyparser'
-import { LinksTable, StatsTable } from './models'
+import { LinksTable } from './models'
 import createDebug from 'debug'
 const debug = createDebug('app:editLinks')
 

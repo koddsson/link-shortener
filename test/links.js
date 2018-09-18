@@ -1,5 +1,5 @@
 import linksApp from '../links'
-import { LinksTable, StatsTable } from '../models'
+import { LinksTable } from '../models'
 import chai, { expect } from 'chai'
 import chaiHttp from 'chai-http'
 import { describe, it, beforeEach } from 'mocha'
@@ -54,22 +54,6 @@ describe('links app', () => {
         .and.have.property('body')
         .with.keys(['created', 'id', 'url'])
         .and.property('url', 'https://example.com')
-    })
-
-    it('adds stats to Stats table', async () => {
-      const links = new LinksTable(`memory://${id}`)
-      await links.add({ id: 'a', url: 'https://example.com' })
-      const stats = new StatsTable(`memory://${id}`)
-      const response = await app
-        .get('/a')
-        .redirects(0)
-        .set('User-Agent', 'test-suite')
-        .accept('json')
-      const results = await stats.allBy({ page: 'a' })
-      expect(results).to.have.lengthOf(1)
-      expect(results).to.deep.equal([
-        { agent: 'test-suite', ip: '::ffff:127.0.0.1', page: 'a', status: 302, created: results[0].created },
-      ])
     })
 
     it('404s if given a link that does not exist', async () => {
