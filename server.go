@@ -16,31 +16,30 @@ type Link struct {
 
 func ErrInvalidRequest(err error) render.Renderer {
 	return &ErrResponse{
-		Err:            err,
-		HTTPStatusCode: 400,
+		Err:        err,
+		StatusCode: 400,
 	}
 }
 
 func ErrNotFound(err error) render.Renderer {
 	return &ErrResponse{
-		Err:            err,
-		HTTPStatusCode: 404,
+		Err:        err,
+		StatusCode: 404,
 	}
 }
 
 type ErrResponse struct {
-	Err            error `json:"-"` // low-level runtime error
-	HTTPStatusCode int   `json:"-"` // http response status code
+	Err error `json:"-"` // low-level runtime error
 
+	StatusCode int    `json:"code"`            // user-level status message
 	StatusText string `json:"status"`          // user-level status message
-	AppCode    int64  `json:"code,omitempty"`  // application-specific error code
 	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
 }
 
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	e.StatusText = http.StatusText(e.HTTPStatusCode)
+	e.StatusText = http.StatusText(e.StatusCode)
 	e.ErrorText = e.Err.Error()
-	render.Status(r, e.HTTPStatusCode)
+	render.Status(r, e.StatusCode)
 	return nil
 }
 
@@ -71,14 +70,17 @@ func dbGetLink(ID string) (*Link, error) {
 
 func CreateServer() *chi.Mux {
 	r := chi.NewRouter()
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(400), 400)
 		return
 	})
+
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(400), 400)
 		return
 	})
+
 	r.Post("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		link := &Link{}
 
