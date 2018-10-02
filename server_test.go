@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -43,9 +44,15 @@ func TestLinkGetFound(t *testing.T) {
 
 	resp, err := client.Get(server.URL + "/abc")
 	require.NoError(err)
-	require.Equal(302, resp.StatusCode)
 
-	// TODO: Test headers and response body
+	require.Equal(302, resp.StatusCode)
+	require.Equal("https://example.com", resp.Header.Get("Location"))
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	require.NoError(err)
+	body := string(bodyBytes[:])
+
+	require.Equal("<a href=\"https://example.com\">Found</a>.\n\n", body)
 }
 
 // Post scenarios
