@@ -36,23 +36,8 @@ func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func NewLinkResponse(link *Link) *LinkResponse {
-	resp := &LinkResponse{Link: link}
-	return resp
-}
-
-func (rd *LinkResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	// Pre-processing before a response is marshalled and sent across the wire
-	rd.Elapsed = 10
+func (link *Link) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
-}
-
-type LinkResponse struct {
-	*Link
-
-	// We add an additional field to the response here.. such as this
-	// elapsed computed property
-	Elapsed int64 `json:"elapsed"`
 }
 
 func (link *Link) Bind(r *http.Request) error {
@@ -88,7 +73,7 @@ func CreateServer() *chi.Mux {
 		dbNewLink(link)
 
 		render.Status(r, http.StatusCreated)
-		render.Render(w, r, NewLinkResponse(link))
+		render.Render(w, r, link)
 	})
 
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
