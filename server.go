@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
@@ -12,11 +11,6 @@ import (
 type Link struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
-}
-
-type LinkRequest struct {
-	*Link
-	ProtectedID string `json:"id"` // override 'id' json to have more control
 }
 
 func ErrInvalidRequest(err error) render.Renderer {
@@ -61,15 +55,7 @@ type LinkResponse struct {
 	Elapsed int64 `json:"elapsed"`
 }
 
-func (l *LinkRequest) Bind(r *http.Request) error {
-	// l.Link is nil if no Link fields are sent in the request. Return an
-	// error to avoid a nil pointer dereference.
-	if l.Link == nil {
-		return errors.New("missing required Link fields.")
-	}
-
-	// just a post-process after a decode..
-	l.ProtectedID = "" // unset the protected ID
+func (link *Link) Bind(r *http.Request) error {
 	return nil
 }
 
@@ -92,17 +78,17 @@ func CreateServer() *chi.Mux {
 		return
 	})
 	r.Post("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		data := &LinkRequest{}
+		link := &Link{}
 
-		if err := render.Bind(r, data); err != nil {
+		if err := render.Bind(r, link); err != nil {
 			render.Render(w, r, ErrInvalidRequest(err))
 			return
 		}
 
-		dbNewLink(data.Link)
+		dbNewLink(link)
 
 		render.Status(r, http.StatusCreated)
-		render.Render(w, r, NewLinkResponse(data.Link))
+		render.Render(w, r, NewLinkResponse(link))
 	})
 
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
