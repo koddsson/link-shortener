@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
@@ -17,8 +18,13 @@ func ErrInvalidRequest(err error) render.Renderer {
 	return &ErrResponse{
 		Err:            err,
 		HTTPStatusCode: 400,
-		StatusText:     "Bad Request",
-		ErrorText:      err.Error(),
+	}
+}
+
+func ErrNotFound(err error) render.Renderer {
+	return &ErrResponse{
+		Err:            err,
+		HTTPStatusCode: 404,
 	}
 }
 
@@ -32,6 +38,8 @@ type ErrResponse struct {
 }
 
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	e.StatusText = http.StatusText(e.HTTPStatusCode)
+	e.ErrorText = e.Err.Error()
 	render.Status(r, e.HTTPStatusCode)
 	return nil
 }
@@ -50,6 +58,15 @@ func dbNewLink(link *Link) (*Link, error) {
 	link.ID = fmt.Sprintf("%d", rand.Intn(100)+10)
 	links = append(links, link)
 	return link, nil
+}
+
+func dbGetLink(ID string) (*Link, error) {
+	for i := range links {
+		if links[i].ID == ID {
+			return links[i], nil
+		}
+	}
+	return nil, errors.New("Cannot find link by ID " + ID)
 }
 
 func CreateServer() *chi.Mux {
@@ -77,12 +94,13 @@ func CreateServer() *chi.Mux {
 	})
 
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
-		if id == "exists" {
-			http.Redirect(w, r, "https://example.com", 302)
+		ID := chi.URLParam(r, "id")
+		link, err := dbGetLink(ID)
+		if err != nil {
+			render.Render(w, r, ErrNotFound(err))
 			return
 		}
-		http.Error(w, http.StatusText(404), 404)
+		http.Redirect(w, r, link.URL, 302)
 	})
 	return r
 }
