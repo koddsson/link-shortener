@@ -19,6 +19,7 @@ func TestLinkGetNotFound(t *testing.T) {
 	require := require.New(t)
 	r := CreateServer()
 	server := httptest.NewServer(r)
+	defer server.Close()
 
 	resp, err := client.Get(server.URL + "/doesntexist")
 	require.NoError(err)
@@ -30,6 +31,7 @@ func TestLinkGetFound(t *testing.T) {
 	require := require.New(t)
 	r := CreateServer()
 	server := httptest.NewServer(r)
+	defer server.Close()
 
 	resp, err := client.Get(server.URL + "/exists")
 	require.NoError(err)
@@ -51,6 +53,7 @@ func TestLinkPostJSON(t *testing.T) {
 	require := require.New(t)
 	r := CreateServer()
 	server := httptest.NewServer(r)
+	defer server.Close()
 	json := []byte(`{"url": "https://example.com"}`)
 
 	resp, err := http.Post(server.URL+"/new-link", "application/json", bytes.NewBuffer(json))
@@ -64,6 +67,7 @@ func TestLinkPostFormData(t *testing.T) {
 	require := require.New(t)
 	r := CreateServer()
 	server := httptest.NewServer(r)
+	defer server.Close()
 	json := []byte(`{"url": "https://example.com"}`)
 
 	resp, err := http.Post(server.URL+"/new-link", "application/json", bytes.NewBuffer(json))
@@ -77,6 +81,7 @@ func TestLinkPostJSONURLNotProvided(t *testing.T) {
 	require := require.New(t)
 	r := CreateServer()
 	server := httptest.NewServer(r)
+	defer server.Close()
 
 	resp, err := http.PostForm(server.URL+"/new-link", url.Values{"url": {"https://example.com"}})
 	require.NoError(err)
@@ -87,6 +92,7 @@ func TestLinkPostFormDataURLNotProvided(t *testing.T) {
 	require := require.New(t)
 	r := CreateServer()
 	server := httptest.NewServer(r)
+	defer server.Close()
 
 	resp, err := http.PostForm(server.URL+"/new-link", url.Values{})
 	require.NoError(err)
@@ -97,6 +103,7 @@ func TestLinkPostJSONURLAndIDNotProvided(t *testing.T) {
 	require := require.New(t)
 	r := CreateServer()
 	server := httptest.NewServer(r)
+	defer server.Close()
 	json := []byte(`{}`)
 
 	resp, err := http.Post(server.URL, "application/json", bytes.NewBuffer(json))
@@ -108,6 +115,7 @@ func TestLinkPostFormDataURLAndIDNotProvided(t *testing.T) {
 	require := require.New(t)
 	r := CreateServer()
 	server := httptest.NewServer(r)
+	defer server.Close()
 
 	resp, err := http.PostForm(server.URL, url.Values{})
 	require.NoError(err)
