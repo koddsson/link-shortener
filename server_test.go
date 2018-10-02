@@ -15,6 +15,12 @@ var client = &http.Client{
 	},
 }
 
+func InsertLinkIntoMockDB(link *Link) error {
+	// TODO: Currently using in-memory DB. Switch this out for Elastic
+	links = append(links, link)
+	return nil
+}
+
 func TestLinkGetNotFound(t *testing.T) {
 	require := require.New(t)
 	r := CreateServer()
@@ -27,13 +33,15 @@ func TestLinkGetNotFound(t *testing.T) {
 }
 
 func TestLinkGetFound(t *testing.T) {
-	// TODO: Insert the link to database
+	link := Link{ID: "abc", URL: "https://example.com"}
+	InsertLinkIntoMockDB(&link)
+
 	require := require.New(t)
 	r := CreateServer()
 	server := httptest.NewServer(r)
 	defer server.Close()
 
-	resp, err := client.Get(server.URL + "/exists")
+	resp, err := client.Get(server.URL + "/abc")
 	require.NoError(err)
 	require.Equal(302, resp.StatusCode)
 
