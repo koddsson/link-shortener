@@ -83,9 +83,9 @@ func TestLinkPostFormData(t *testing.T) {
 	r := CreateServer()
 	server := httptest.NewServer(r)
 	defer server.Close()
-	json := []byte(`{"url": "https://example.com"}`)
 
-	resp, err := http.Post(server.URL+"/new-link", "application/json", bytes.NewBuffer(json))
+	json := []byte(`url=https%3A%2F%2Fexample.com`)
+	resp, err := http.Post(server.URL+"/new-link", "application/x-www-form-urlencoded", bytes.NewBuffer(json))
 	require.NoError(err)
 	require.Equal(201, resp.StatusCode)
 
@@ -98,9 +98,11 @@ func TestLinkPostJSONURLNotProvided(t *testing.T) {
 	server := httptest.NewServer(r)
 	defer server.Close()
 
-	resp, err := http.PostForm(server.URL+"/new-link", url.Values{"url": {"https://example.com"}})
+	json := []byte(`{}`)
+	resp, err := http.Post(server.URL+"/new-link", "application/json", bytes.NewBuffer(json))
 	require.NoError(err)
 	require.Equal(400, resp.StatusCode)
+
 }
 
 func TestLinkPostFormDataURLNotProvided(t *testing.T) {

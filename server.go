@@ -10,8 +10,8 @@ import (
 )
 
 type Link struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+	ID  string `json:"id" form:"id"`
+	URL string `json:"url" form:"url,omitempty"`
 }
 
 func ErrInvalidRequest(err error) render.Renderer {
@@ -48,6 +48,11 @@ func (link *Link) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (link *Link) Bind(r *http.Request) error {
+	// TODO: Parse URL and return error on error.
+	// TODO: Return the correct type of error.
+	if link.URL == "" {
+		return errors.New("foo")
+	}
 	return nil
 }
 
@@ -69,6 +74,8 @@ func dbGetLink(ID string) (*Link, error) {
 }
 
 func CreateServer() *chi.Mux {
+	render.Respond = Respond
+
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +112,16 @@ func CreateServer() *chi.Mux {
 		http.Redirect(w, r, link.URL, 302)
 	})
 	return r
+}
+
+func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
+	// Format response based on request Accept header.
+	switch render.GetAcceptedContentType(r) {
+	case render.ContentTypeJSON:
+		render.JSON(w, r, v)
+	default:
+		render.XML(w, r, v)
+	}
 }
 
 func main() {
