@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-var client = &http.Client{
+var testClient = &http.Client{
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	},
@@ -28,7 +28,7 @@ func TestLinkGetNotFound(t *testing.T) {
 	server := httptest.NewServer(r)
 	defer server.Close()
 
-	resp, err := client.Get(server.URL + "/doesntexist")
+	resp, err := testClient.Get(server.URL + "/doesntexist")
 	require.NoError(err)
 	require.Equal(404, resp.StatusCode)
 }
@@ -42,7 +42,7 @@ func TestLinkGetFound(t *testing.T) {
 	server := httptest.NewServer(r)
 	defer server.Close()
 
-	resp, err := client.Get(server.URL + "/abc")
+	resp, err := testClient.Get(server.URL + "/abc")
 	require.NoError(err)
 
 	require.Equal(302, resp.StatusCode)
@@ -102,7 +102,6 @@ func TestLinkPostJSONURLNotProvided(t *testing.T) {
 	resp, err := http.Post(server.URL+"/new-link", "application/json", bytes.NewBuffer(json))
 	require.NoError(err)
 	require.Equal(400, resp.StatusCode)
-
 }
 
 func TestLinkPostFormDataURLNotProvided(t *testing.T) {

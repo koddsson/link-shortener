@@ -1,13 +1,14 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/syntaqx/render"
-	"math/rand"
 	"net/http"
+	"net/url"
+	"os"
 )
+
+var db *DB
 
 type Link struct {
 	ID  string `json:"id" form:"id"`
@@ -48,29 +49,11 @@ func (link *Link) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (link *Link) Bind(r *http.Request) error {
-	// TODO: Parse URL and return error on error.
-	// TODO: Return the correct type of error.
-	if link.URL == "" {
-		return errors.New("foo")
+	_, err := url.Parse(link.URL)
+	if err != nil {
+		return err
 	}
 	return nil
-}
-
-var links = []*Link{}
-
-func dbNewLink(link *Link) (*Link, error) {
-	link.ID = fmt.Sprintf("%d", rand.Intn(100)+10)
-	links = append(links, link)
-	return link, nil
-}
-
-func dbGetLink(ID string) (*Link, error) {
-	for i := range links {
-		if links[i].ID == ID {
-			return links[i], nil
-		}
-	}
-	return nil, errors.New("Cannot find link by ID " + ID)
 }
 
 func CreateServer() *chi.Mux {
@@ -96,7 +79,7 @@ func CreateServer() *chi.Mux {
 			return
 		}
 
-		dbNewLink(link)
+		db.NewLink(link)
 
 		render.Status(r, http.StatusCreated)
 		render.Render(w, r, link)
@@ -104,7 +87,7 @@ func CreateServer() *chi.Mux {
 
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		ID := chi.URLParam(r, "id")
-		link, err := dbGetLink(ID)
+		link, err := db.GetLink(ID)
 		if err != nil {
 			render.Render(w, r, ErrNotFound(err))
 			return
@@ -125,6 +108,11 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 }
 
 func main() {
+	var err error
+	db, err = NewDB(os.Getenv("ES_URL"))
+	if err != nil {
+		panic(err)
+	}
 	r := CreateServer()
 	http.ListenAndServe(":3000", r)
 }
