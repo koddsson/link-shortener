@@ -21,9 +21,15 @@ func GetDatabaseURL() string {
 	return os.Getenv("ES_URL")
 }
 
-func InsertLinkIntoMockDB(link *Link) error {
-	// TODO: Currently using in-memory DB. Switch this out for Elastic
-	links = append(links, link)
+func InsertLinkIntoDB(link *Link) error {
+	db, err := NewDB(GetDatabaseURL())
+	if err != nil {
+		return err
+	}
+	link, err = db.AddLink(link)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -43,7 +49,8 @@ func TestLinkGetFound(t *testing.T) {
 	require := require.New(t)
 
 	link := Link{ID: "abc", URL: "https://example.com"}
-	InsertLinkIntoMockDB(&link)
+	err := InsertLinkIntoDB(&link)
+	require.NoError(err)
 
 	r, err := CreateServer(GetDatabaseURL())
 	server := httptest.NewServer(r)
