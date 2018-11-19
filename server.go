@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/syntaqx/render"
 	"net/http"
@@ -114,5 +115,6 @@ func main() {
 		panic(err)
 	}
 	r := CreateServer()
+	fmt.Println("Up and running!")
 	http.ListenAndServe(":3000", r)
 }

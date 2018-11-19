@@ -2,8 +2,9 @@ package main
 
 import (
 	"bytes"
-	"errors"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -26,8 +27,18 @@ var links = []*Link{}
 var client = &http.Client{}
 
 func (db *DB) NewLink(link *Link) (*Link, error) {
+	if link.ID == "" {
+		// Generate the ID
+		var exists = true
+		for exists {
+			// Make ES call to the ID
+			// Check if it exists
+			link.ID = fmt.Sprintf("%d", rand.Intn(100)+10)
+		}
+	}
+
 	// TODO: Make URL creation here better and remove hardcoding
-	url := "http://" + db.URL.Host + "/links/link/9"
+	url := "http://" + db.URL.Host + "/links/link/" + link.ID
 	// TODO: Do JSON marshalling better and remove hardcoding
 	json := []byte(`{"url": "https://example.com"}`)
 
@@ -48,18 +59,25 @@ func (db *DB) NewLink(link *Link) (*Link, error) {
 	fmt.Printf("%+v", body)
 
 	// TODO: Do something with response
-
-	link.ID = fmt.Sprintf("%d", rand.Intn(100)+10)
 	links = append(links, link)
 	return link, nil
 }
 
 func (db *DB) GetLink(ID string) (*Link, error) {
-	// TODO: Read from elastic
-	for i := range links {
-		if links[i].ID == ID {
-			return links[i], nil
-		}
+	var link Link
+	url := "http://" + db.URL.Host + "/links/link/" + ID + "/_source"
+	response, err := client.Get(url)
+
+	// TODO: Return error if status is not 200
+
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("Cannot find link by ID " + ID)
+
+	defer io.Copy(ioutil.Discard, response.Body)
+	json.NewDecoder(response.Body).Decode(&link)
+
+	link.ID = ID
+
+	return &link, nil
 }
