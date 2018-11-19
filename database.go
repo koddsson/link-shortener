@@ -36,7 +36,7 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 			foundLink, _ := db.GetLink(link.ID)
 			// If the ID is not found in the DB we can break
 			// the loop because we have a unique ID
-			if foundLink != nil {
+			if foundLink == nil {
 				break
 			}
 			// The link _was_ found, add a new random alpha
