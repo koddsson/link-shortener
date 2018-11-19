@@ -88,6 +88,8 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	r.Post("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		link := &Link{}
 
+		// TODO: use chi.URLParam to get ID so one isn't generated
+
 		fmt.Println("Post starting about to call render.Bind")
 		if err := render.Bind(r, link); err != nil {
 			render.Render(w, r, ErrInvalidRequest(err))
