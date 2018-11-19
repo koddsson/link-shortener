@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type DB struct {
@@ -27,23 +28,31 @@ func NewDB(u string) (*DB, error) {
 var links = []*Link{}
 var client = &http.Client{}
 
-func (db *DB) NewLink(link *Link) (*Link, error) {
+func (db *DB) AddLink(link *Link) (*Link, error) {
 	if link.ID == "" {
-		// Generate the ID
-		var exists = true
-		for exists {
-			// Make ES call to the ID
-			// Check if it exists
-			link.ID = fmt.Sprintf("%d", rand.Intn(100)+10)
+		s := rand.New(rand.NewSource(time.Now().Unix()))
+		// Generate and ID that does not exist in the database
+		for true {
+			foundLink, _ := db.GetLink(link.ID)
+			// If the ID is not found in the DB we can break
+			// the loop because we have a unique ID
+			if foundLink != nil {
+				break
+			}
+			// The link _was_ found, add a new random alpha
+			// character to the ID and try again
+			link.ID = link.ID + fmt.Sprintf("%s", string(byte(97+s.Intn(25))))
 		}
 	}
 
 	// TODO: Make URL creation here better and remove hardcoding
-	url := "http://" + db.URL.Host + "/links/link/" + link.ID
-	// TODO: Do JSON marshalling better and remove hardcoding
-	json := []byte(`{"url": "https://example.com"}`)
+	url := db.URL.Scheme + "://" + db.URL.Host + "/links/link/" + link.ID
+	jsonbytes, err := json.Marshal(link)
+	if err != nil {
+		return nil, err
+	}
 
-	request, err := http.NewRequest("PUT", url, bytes.NewBuffer(json))
+	request, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonbytes))
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Accept", "application/json")
 	if err != nil {
@@ -55,18 +64,25 @@ func (db *DB) NewLink(link *Link) (*Link, error) {
 		return nil, err
 	}
 
-	bodyBytes, err := ioutil.ReadAll(response.Body)
-	body := string(bodyBytes[:])
-	fmt.Printf("%+v", body)
+	fmt.Println("About to parse body")
 
-	// TODO: Do something with response
-	links = append(links, link)
+	var dbResponse map[string]string
+	defer io.Copy(ioutil.Discard, response.Body)
+	json.NewDecoder(response.Body).Decode(&dbResponse)
+
+	if dbResponse["result"] != "updated" && dbResponse["result"] != "noop" {
+		return nil, errors.New("Could not insert record got " + dbResponse["result"])
+	}
+
+	fmt.Printf("Body parsed, %#v (%v)\n", &dbResponse, dbResponse["result"])
+
 	return link, nil
 }
 
 func (db *DB) GetLink(ID string) (*Link, error) {
 	var link Link
-	url := "http://" + db.URL.Host + "/links/link/" + ID + "/_source"
+	url := db.URL.Scheme + "://" + db.URL.Host + "/links/link/" + ID + "/_source"
+	fmt.Printf("requesting from %v\n", url)
 	response, err := client.Get(url)
 	if err != nil {
 		return nil, err

@@ -23,6 +23,13 @@ func ErrInvalidRequest(err error) render.Renderer {
 	}
 }
 
+func ErrInternalServer(err error) render.Renderer {
+	return &ErrResponse{
+		Err:        err,
+		StatusCode: http.StatusInternalServerError,
+	}
+}
+
 func ErrNotFound(err error) render.Renderer {
 	return &ErrResponse{
 		Err:        err,
@@ -81,12 +88,18 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	r.Post("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		link := &Link{}
 
+		fmt.Println("Post starting about to call render.Bind")
 		if err := render.Bind(r, link); err != nil {
 			render.Render(w, r, ErrInvalidRequest(err))
 			return
 		}
 
-		db.NewLink(link)
+		fmt.Printf("Got fully hydrated link %+v\n", link)
+		link, err := db.AddLink(link)
+		if err != nil {
+			render.Render(w, r, ErrInternalServer(err))
+		}
+		fmt.Printf("Got back link from DB %+v\n", link)
 
 		render.Status(r, http.StatusCreated)
 		render.Render(w, r, link)
@@ -96,12 +109,14 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		ID := chi.URLParam(r, "id")
 		link, err := db.GetLink(ID)
 		if err != nil {
+			fmt.Printf("GetLink errored %+v\n", err)
 			render.Render(w, r, ErrNotFound(err))
 			return
 		}
-		http.Redirect(w, r, link.URL, 302)
+		fmt.Printf("got link from db %+v\n", link)
+		http.Redirect(w, r, link.URL, http.StatusFound)
 	})
-	return r
+	return r, nil
 }
 
 func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
