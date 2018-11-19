@@ -95,7 +95,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		}
 
 		fmt.Printf("Got fully hydrated link %+v\n", link)
-		link, err := db.AddLink(link)
+		_, err := db.AddLink(link)
 		if err != nil {
 			render.Render(w, r, ErrInternalServer(err))
 		}

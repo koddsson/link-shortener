@@ -71,8 +71,9 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 	var dbResponse map[string]string
 	defer io.Copy(ioutil.Discard, response.Body)
 	json.NewDecoder(response.Body).Decode(&dbResponse)
+	result := dbResponse["result"]
 
-	if dbResponse["result"] != "updated" && dbResponse["result"] != "noop" {
+	if result != "created" && result != "updated" && result != "noop" {
 		return nil, errors.New("Could not insert record got " + dbResponse["result"])
 	}
 
