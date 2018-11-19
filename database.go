@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -67,11 +68,12 @@ func (db *DB) GetLink(ID string) (*Link, error) {
 	var link Link
 	url := "http://" + db.URL.Host + "/links/link/" + ID + "/_source"
 	response, err := client.Get(url)
-
-	// TODO: Return error if status is not 200
-
 	if err != nil {
 		return nil, err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.New("Link not found in database")
 	}
 
 	defer io.Copy(ioutil.Discard, response.Body)
