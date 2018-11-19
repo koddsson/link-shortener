@@ -57,7 +57,13 @@ func (link *Link) Bind(r *http.Request) error {
 	return nil
 }
 
-func CreateServer() *chi.Mux {
+func CreateServer(dbURL string) (*chi.Mux, error) {
+	var err error
+	db, err = NewDB(dbURL)
+	if err != nil {
+		return nil, err
+	}
+
 	render.Respond = Respond
 
 	r := chi.NewRouter()
@@ -109,12 +115,10 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 }
 
 func main() {
-	var err error
-	db, err = NewDB(os.Getenv("ES_URL"))
+	r, err := CreateServer(os.Getenv("ES_URL"))
 	if err != nil {
 		panic(err)
 	}
-	r := CreateServer()
 	fmt.Println("Up and running!")
 	http.ListenAndServe(":3000", r)
 }

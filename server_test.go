@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 )
 
@@ -14,6 +15,10 @@ var testClient = &http.Client{
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	},
+}
+
+func GetDatabaseURL() string {
+	return os.Getenv("ES_URL")
 }
 
 func InsertLinkIntoMockDB(link *Link) error {
@@ -24,7 +29,8 @@ func InsertLinkIntoMockDB(link *Link) error {
 
 func TestLinkGetNotFound(t *testing.T) {
 	require := require.New(t)
-	r := CreateServer()
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
 	server := httptest.NewServer(r)
 	defer server.Close()
 
@@ -34,11 +40,12 @@ func TestLinkGetNotFound(t *testing.T) {
 }
 
 func TestLinkGetFound(t *testing.T) {
+	require := require.New(t)
+
 	link := Link{ID: "abc", URL: "https://example.com"}
 	InsertLinkIntoMockDB(&link)
 
-	require := require.New(t)
-	r := CreateServer()
+	r, err := CreateServer(GetDatabaseURL())
 	server := httptest.NewServer(r)
 	defer server.Close()
 
@@ -66,7 +73,8 @@ func TestLinkGetFound(t *testing.T) {
 
 func TestLinkPostJSON(t *testing.T) {
 	require := require.New(t)
-	r := CreateServer()
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
 	server := httptest.NewServer(r)
 	defer server.Close()
 	json := []byte(`{"url": "https://example.com"}`)
@@ -80,7 +88,8 @@ func TestLinkPostJSON(t *testing.T) {
 
 func TestLinkPostFormData(t *testing.T) {
 	require := require.New(t)
-	r := CreateServer()
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
 	server := httptest.NewServer(r)
 	defer server.Close()
 
@@ -94,7 +103,8 @@ func TestLinkPostFormData(t *testing.T) {
 
 func TestLinkPostJSONURLNotProvided(t *testing.T) {
 	require := require.New(t)
-	r := CreateServer()
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
 	server := httptest.NewServer(r)
 	defer server.Close()
 
@@ -106,7 +116,8 @@ func TestLinkPostJSONURLNotProvided(t *testing.T) {
 
 func TestLinkPostFormDataURLNotProvided(t *testing.T) {
 	require := require.New(t)
-	r := CreateServer()
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
 	server := httptest.NewServer(r)
 	defer server.Close()
 
@@ -117,7 +128,8 @@ func TestLinkPostFormDataURLNotProvided(t *testing.T) {
 
 func TestLinkPostJSONURLAndIDNotProvided(t *testing.T) {
 	require := require.New(t)
-	r := CreateServer()
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
 	server := httptest.NewServer(r)
 	defer server.Close()
 	json := []byte(`{}`)
@@ -129,7 +141,8 @@ func TestLinkPostJSONURLAndIDNotProvided(t *testing.T) {
 
 func TestLinkPostFormDataURLAndIDNotProvided(t *testing.T) {
 	require := require.New(t)
-	r := CreateServer()
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
 	server := httptest.NewServer(r)
 	defer server.Close()
 
