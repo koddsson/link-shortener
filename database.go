@@ -33,15 +33,17 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 		s := rand.New(rand.NewSource(time.Now().Unix()))
 		// Generate and ID that does not exist in the database
 		for true {
+			// Add a new randomly generated alpha character to the id
+			link.ID = link.ID + fmt.Sprintf("%s", string(byte(97+s.Intn(25))))
+
+			// Check if the newly generate ID exists in DB
 			foundLink, _ := db.GetLink(link.ID)
+
 			// If the ID is not found in the DB we can break
 			// the loop because we have a unique ID
 			if foundLink == nil {
 				break
 			}
-			// The link _was_ found, add a new random alpha
-			// character to the ID and try again
-			link.ID = link.ID + fmt.Sprintf("%s", string(byte(97+s.Intn(25))))
 		}
 	}
 
