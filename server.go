@@ -19,14 +19,14 @@ type Link struct {
 func ErrInvalidRequest(err error) render.Renderer {
 	return &ErrResponse{
 		Err:        err,
-		StatusCode: 400,
+		StatusCode: http.StatusBadRequest,
 	}
 }
 
 func ErrNotFound(err error) render.Renderer {
 	return &ErrResponse{
 		Err:        err,
-		StatusCode: 404,
+		StatusCode: http.StatusNotFound,
 	}
 }
 
@@ -63,12 +63,12 @@ func CreateServer() *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, http.StatusText(400), 400)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	})
 
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, http.StatusText(400), 400)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	})
 
