@@ -30,7 +30,7 @@ var client = &http.Client{}
 
 func (db *DB) AddLink(link *Link) (*Link, error) {
 	if link.ID == "" {
-		s := rand.New(rand.NewSource(time.Now().Unix()))
+		s := rand.New(rand.NewSource(time.Now().UnixNano()))
 		// Generate and ID that does not exist in the database
 		for true {
 			// Add a new randomly generated alpha character to the id
