@@ -66,8 +66,6 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 		return nil, err
 	}
 
-	fmt.Println("About to parse body")
-
 	var dbResponse map[string]string
 	defer io.Copy(ioutil.Discard, response.Body)
 	json.NewDecoder(response.Body).Decode(&dbResponse)
@@ -85,7 +83,6 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 func (db *DB) GetLink(ID string) (*Link, error) {
 	var link Link
 	url := db.URL.Scheme + "://" + db.URL.Host + "/links/link/" + ID + "/_source"
-	fmt.Printf("requesting from %v\n", url)
 	response, err := client.Get(url)
 	if err != nil {
 		return nil, err
