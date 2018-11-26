@@ -146,10 +146,14 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 }
 
 func main() {
-	r, err := CreateServer(os.Getenv("ES_URL"))
+	ESUrl := os.Getenv("ES_URL")
+	if ESUrl == "" {
+		panic(errors.New("ES_URL needs to be set"))
+	}
+	r, err := CreateServer(ESUrl)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Up and running!")
+	fmt.Println("Up and running on port 3000!")
 	http.ListenAndServe(":3000", r)
 }
