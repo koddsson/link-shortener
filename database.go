@@ -22,6 +22,9 @@ func NewDB(u string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	if url.Host == "" || url.Scheme == "" {
+		return nil, errors.New("Malformed URL")
+	}
 	return &DB{URL: url}, nil
 }
 
