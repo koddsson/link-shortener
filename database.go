@@ -47,14 +47,18 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 		}
 	}
 
-	// TODO: Make URL creation here better and remove hardcoding
-	url := db.URL.Scheme + "://" + db.URL.Host + "/links/link/" + link.ID
+	u := new(url.URL)
+	u.Scheme = db.URL.Scheme
+	u.Host = db.URL.Host
+	u.User = db.URL.User
+	u.Path = "/links/link/" + url.PathEscape(link.ID)
+
 	jsonbytes, err := json.Marshal(link)
 	if err != nil {
 		return nil, err
 	}
 
-	request, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonbytes))
+	request, err := http.NewRequest("PUT", u.String(), bytes.NewBuffer(jsonbytes))
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Accept", "application/json")
 	if err != nil {
