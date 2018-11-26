@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/syntaqx/render"
@@ -57,9 +58,15 @@ func (link *Link) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (link *Link) Bind(r *http.Request) error {
-	_, err := url.Parse(link.URL)
+	if link.URL == "" {
+		return errors.New("Malformed URL")
+	}
+	url, err := url.Parse(link.URL)
 	if err != nil {
 		return err
+	}
+	if url.Host == "" || url.Scheme == "" {
+		return errors.New("Malformed URL")
 	}
 	return nil
 }
@@ -81,8 +88,20 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	})
 
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
+		link := &Link{}
+
+		if err := render.Bind(r, link); err != nil {
+			render.Render(w, r, ErrInvalidRequest(err))
+			return
+		}
+
+		_, err := db.AddLink(link)
+		if err != nil {
+			render.Render(w, r, ErrInternalServer(err))
+		}
+
+		render.Status(r, http.StatusCreated)
+		render.Render(w, r, link)
 	})
 
 	r.Post("/{id}", func(w http.ResponseWriter, r *http.Request) {
