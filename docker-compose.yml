@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+
+  link_shortener:
+    build: ./
+    restart: always
+    ports:
+      - 3000:3000
+    environment:
+      - ES_URL=http://elastic:9200
+    networks:
+      - default
+    # TODO: depends_on does not work correctly. We need to wait until
+    # elasticsearch has properly booted and is accepting requests
+    depends_on:
+      - elastic
+
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
+    restart: always
+    environment:
+      - "discovery.type=single-node"
+    volumes:
+      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./elastic_data:/var/lib/elasticsearch
+    expose:
+      - 9200
+      - 9300
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cat/health/?h=status"]
+      interval: 30s
+      timeout: 1s
+      retries: 1
+
+networks:
+  default:
