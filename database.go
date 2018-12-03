@@ -31,6 +31,39 @@ func NewDB(u string) (*DB, error) {
 var links = []*Link{}
 var client = &http.Client{}
 
+func jsonResponse(r *http.Response, v interface{}) {
+	defer io.Copy(ioutil.Discard, r.Body)
+	json.NewDecoder(r.Body).Decode(v)
+}
+
+func (db *DB) CreateURL(path string) string {
+	u := new(url.URL)
+	u.Scheme = db.URL.Scheme
+	u.Host = db.URL.Host
+	u.User = db.URL.User
+	u.Path = path
+	return u.String()
+}
+
+func (db *DB) Get(path string) (*http.Response, error) {
+	request, err := http.NewRequest("GET", db.CreateURL(path), nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Add("Accept", "application/json")
+	return client.Do(request)
+}
+
+func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
+	request, err := http.NewRequest("PUT", db.CreateURL(path), bytes.NewBuffer(jsonbytes))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Add("Content-Type", "application/json")
+	request.Header.Add("Accept", "application/json")
+	return client.Do(request)
+}
+
 func (db *DB) AddLink(link *Link) (*Link, error) {
 	if link.ID == "" {
 		s := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -50,47 +83,30 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 		}
 	}
 
-	u := new(url.URL)
-	u.Scheme = db.URL.Scheme
-	u.Host = db.URL.Host
-	u.User = db.URL.User
-	u.Path = "/links/link/" + url.PathEscape(link.ID)
-
 	jsonbytes, err := json.Marshal(link)
 	if err != nil {
 		return nil, err
 	}
 
-	request, err := http.NewRequest("PUT", u.String(), bytes.NewBuffer(jsonbytes))
-	request.Header.Add("Content-Type", "application/json")
-	request.Header.Add("Accept", "application/json")
-	if err != nil {
-		return nil, err
-	}
-
-	response, err := client.Do(request)
+	response, err := db.Put("/links/link/"+url.PathEscape(link.ID), jsonbytes)
 	if err != nil {
 		return nil, err
 	}
 
 	var dbResponse map[string]string
-	defer io.Copy(ioutil.Discard, response.Body)
-	json.NewDecoder(response.Body).Decode(&dbResponse)
+	jsonResponse(response, &dbResponse)
 	result := dbResponse["result"]
 
 	if result != "created" && result != "updated" && result != "noop" {
 		return nil, errors.New("Could not insert record got " + dbResponse["result"])
 	}
 
-	fmt.Printf("Body parsed, %#v (%v)\n", &dbResponse, dbResponse["result"])
-
 	return link, nil
 }
 
 func (db *DB) GetLink(ID string) (*Link, error) {
 	var link Link
-	url := db.URL.Scheme + "://" + db.URL.Host + "/links/link/" + ID + "/_source"
-	response, err := client.Get(url)
+	response, err := db.Get("/links/link/" + url.PathEscape(ID) + "/_source")
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +115,7 @@ func (db *DB) GetLink(ID string) (*Link, error) {
 		return nil, errors.New("Link not found in database")
 	}
 
-	defer io.Copy(ioutil.Discard, response.Body)
-	json.NewDecoder(response.Body).Decode(&link)
+	jsonResponse(response, &link)
 
 	link.ID = ID
 
