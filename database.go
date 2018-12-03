@@ -25,7 +25,12 @@ func NewDB(u string) (*DB, error) {
 	if url.Host == "" || url.Scheme == "" {
 		return nil, errors.New("Malformed URL")
 	}
-	return &DB{URL: url}, nil
+	db := &DB{URL: url}
+	err = db.Migrate()
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
 var links = []*Link{}
@@ -62,6 +67,30 @@ func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Accept", "application/json")
 	return client.Do(request)
+}
+
+func (db *DB) Migrate() error {
+	response, err := db.Get("/links")
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		response, err := db.Put("/links", []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
+		if err != nil {
+			return err
+		}
+		if response.StatusCode != http.StatusOK {
+			return errors.New("Could not create index links")
+		}
+	}
+	response, err = db.Put("/links/_mappings/link", []byte(`{"properties": {"@timestamp": {"type": "date"}, "url": {"type": "text", "analyzer": "standard"}}}`))
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		return errors.New("Could not set mappings for index links")
+	}
+	return nil
 }
 
 func (db *DB) AddLink(link *Link) (*Link, error) {
