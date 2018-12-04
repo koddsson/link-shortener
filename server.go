@@ -17,9 +17,13 @@ var db *DB
 var indexHTML *mustache.Template
 var viewLinkHtml *mustache.Template
 
+type TemplateContextKey string
+
+const TemplateKey TemplateContextKey = "template"
+
 func WithTemplate(r *http.Request, t *mustache.Template) *http.Request {
 	c := r.Context()
-	return r.WithContext(context.WithValue(c, "template", t))
+	return r.WithContext(context.WithValue(c, TemplateKey, t))
 }
 
 type Link struct {
@@ -152,7 +156,7 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 	case render.ContentTypeJSON:
 		render.JSON(w, r, v)
 	default:
-		t, ok := r.Context().Value("template").(*mustache.Template)
+		t, ok := r.Context().Value(TemplateKey).(*mustache.Template)
 		if ok {
 			html, err := t.Render(v)
 			if err != nil {
