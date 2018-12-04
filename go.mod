@@ -2,6 +2,7 @@ module github.com/koddsson/link-shortener
 
 require (
 	github.com/ajg/form v0.0.0-20160822230020-523a5da1a92f // indirect
+	github.com/cbroglie/mustache v1.0.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-chi/chi v3.3.3+incompatible
 	github.com/pmezard/go-difflib v1.0.0 // indirect

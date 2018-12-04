@@ -7,4 +7,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o link-shortener .
 
 FROM scratch
 COPY --from=builder /app/link-shortener /
+COPY *.mustache.html /
 CMD ["/link-shortener"]

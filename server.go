@@ -7,11 +7,14 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/cbroglie/mustache"
 	"github.com/go-chi/chi"
 	"github.com/syntaqx/render"
 )
 
 var db *DB
+var indexHTML *mustache.Template
+var viewLinkHtml *mustache.Template
 
 type Link struct {
 	ID  string `json:"id" form:"id"`
@@ -55,6 +58,7 @@ func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (link *Link) Render(w http.ResponseWriter, r *http.Request) error {
+	w.Header().Set("Location", link.URL)
 	return nil
 }
 
@@ -84,8 +88,8 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
+		htmlTemplate = indexHTML
+		render.Render(w, r, &Link{})
 	})
 
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
@@ -131,10 +135,15 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			render.Render(w, r, ErrNotFound(err))
 			return
 		}
-		http.Redirect(w, r, link.URL, http.StatusFound)
+		htmlTemplate = viewLinkHtml
+
+		render.Status(r, http.StatusFound)
+		render.Render(w, r, link)
 	})
 	return r, nil
 }
+
+var htmlTemplate *mustache.Template
 
 func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 	// Format response based on request Accept header.
@@ -142,7 +151,12 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 	case render.ContentTypeJSON:
 		render.JSON(w, r, v)
 	default:
-		render.XML(w, r, v)
+		html, err := htmlTemplate.Render(v)
+		if err != nil {
+			render.Render(w, r, ErrInternalServer(err))
+		} else {
+			render.HTML(w, r, html)
+		}
 	}
 }
 
@@ -156,5 +170,13 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Up and running on port 3000!")
+	indexHTML, err = mustache.ParseFile("./index.mustache.html")
+	if err != nil {
+		panic(err)
+	}
+	viewLinkHtml, err = mustache.ParseFile("./link.view.mustache.html")
+	if err != nil {
+		panic(err)
+	}
 	http.ListenAndServe(":3000", r)
 }
