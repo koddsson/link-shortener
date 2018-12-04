@@ -3,11 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/go-chi/chi"
-	"github.com/syntaqx/render"
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/go-chi/chi"
+	"github.com/syntaqx/render"
 )
 
 var db *DB
