@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -15,6 +16,11 @@ import (
 var db *DB
 var indexHTML *mustache.Template
 var viewLinkHtml *mustache.Template
+
+func WithTemplate(r *http.Request, t *mustache.Template) *http.Request {
+	c := r.Context()
+	return r.WithContext(context.WithValue(c, "template", t))
+}
 
 type Link struct {
 	ID  string `json:"id" form:"id"`
@@ -88,8 +94,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		htmlTemplate = indexHTML
-		render.Render(w, r, &Link{})
+		render.Render(w, WithTemplate(r, indexHTML), &Link{})
 	})
 
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
@@ -135,15 +140,11 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			render.Render(w, r, ErrNotFound(err))
 			return
 		}
-		htmlTemplate = viewLinkHtml
-
 		render.Status(r, http.StatusFound)
-		render.Render(w, r, link)
+		render.Render(w, WithTemplate(r, viewLinkHtml), link)
 	})
 	return r, nil
 }
-
-var htmlTemplate *mustache.Template
 
 func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 	// Format response based on request Accept header.
@@ -151,11 +152,16 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 	case render.ContentTypeJSON:
 		render.JSON(w, r, v)
 	default:
-		html, err := htmlTemplate.Render(v)
-		if err != nil {
-			render.Render(w, r, ErrInternalServer(err))
+		t, ok := r.Context().Value("template").(*mustache.Template)
+		if ok {
+			html, err := t.Render(v)
+			if err != nil {
+				render.Render(w, r, ErrInternalServer(err))
+			} else {
+				render.HTML(w, r, html)
+			}
 		} else {
-			render.HTML(w, r, html)
+			render.XML(w, r, v)
 		}
 	}
 }
