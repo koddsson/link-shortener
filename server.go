@@ -68,7 +68,6 @@ func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (link *Link) Render(w http.ResponseWriter, r *http.Request) error {
-	w.Header().Set("Location", link.URL)
 	return nil
 }
 
@@ -115,6 +114,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		}
 
 		render.Status(r, http.StatusCreated)
+		w.Header().Set("Location", link.URL)
 		render.Render(w, r, link)
 	})
 
@@ -134,6 +134,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		}
 
 		render.Status(r, http.StatusCreated)
+		w.Header().Set("Location", link.URL)
 		render.Render(w, r, link)
 	})
 
@@ -145,6 +146,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			return
 		}
 		render.Status(r, http.StatusFound)
+		w.Header().Set("Location", link.URL)
 		render.Render(w, WithTemplate(r, viewLinkHtml), link)
 	})
 	return r, nil
