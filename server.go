@@ -31,6 +31,10 @@ type Link struct {
 	URL string `json:"url" form:"url,omitempty"`
 }
 
+func (l *Link) String() string {
+	return l.URL
+}
+
 func ErrInvalidRequest(err error) render.Renderer {
 	return &ErrResponse{
 		Err:        err,
@@ -58,6 +62,10 @@ type ErrResponse struct {
 	StatusCode int    `json:"code"`            // user-level status message
 	StatusText string `json:"status"`          // user-level status message
 	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
+}
+
+func (e *ErrResponse) String() string {
+	return e.ErrorText
 }
 
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
@@ -157,19 +165,19 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 	switch render.GetAcceptedContentType(r) {
 	case render.ContentTypeJSON:
 		render.JSON(w, r, v)
-	default:
-		t, ok := r.Context().Value(TemplateKey).(*mustache.Template)
-		if ok {
+		return
+	case render.ContentTypeHTML:
+		if t, ok := r.Context().Value(TemplateKey).(*mustache.Template); ok && t != nil {
 			html, err := t.Render(v)
 			if err != nil {
 				render.Render(w, r, ErrInternalServer(err))
 			} else {
 				render.HTML(w, r, html)
 			}
-		} else {
-			render.XML(w, r, v)
+			return
 		}
 	}
+	render.PlainText(w, r, fmt.Sprint(v))
 }
 
 func main() {
@@ -182,6 +190,9 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Up and running on port 3000!")
+	// TODO: We need to move the parsing of markdown templates somewhere so that
+	// the tests can pick them up and we can assert on them - perhaps we should also
+	// provide a way for the tests to mock these.
 	indexHTML, err = mustache.ParseFile("./index.mustache.html")
 	if err != nil {
 		panic(err)
