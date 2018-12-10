@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net/http"
@@ -18,7 +19,20 @@ var testClient = &http.Client{
 }
 
 func GetDatabaseURL() string {
-	return os.Getenv("ES_URL")
+	s := os.Getenv("ES_URL")
+	if len(s) == 0 {
+		s = "http://localhost:9201"
+	}
+	return s
+}
+
+func MockHTTP(t *testing.T) (*recorder.Recorder, error) {
+	r, err := recorder.New("fixtures/elastic/" + t.Name())
+	if err != nil {
+		return nil, err
+	}
+	client.Transport = r
+	return r, nil
 }
 
 func InsertLinkIntoDB(link *Link) error {
@@ -35,6 +49,11 @@ func InsertLinkIntoDB(link *Link) error {
 
 func TestLinkGetNotFound(t *testing.T) {
 	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
 	r, err := CreateServer(GetDatabaseURL())
 	require.NoError(err)
 	server := httptest.NewServer(r)
@@ -48,13 +67,17 @@ func TestLinkGetNotFound(t *testing.T) {
 func TestLinkGetFound(t *testing.T) {
 	require := require.New(t)
 
-	link := Link{ID: "abc", URL: "https://example.com"}
-	err := InsertLinkIntoDB(&link)
+	rec, err := MockHTTP(t)
 	require.NoError(err)
+	defer rec.Stop()
 
 	r, err := CreateServer(GetDatabaseURL())
 	server := httptest.NewServer(r)
 	defer server.Close()
+
+	link := Link{ID: "abc", URL: "https://example.com"}
+	err = InsertLinkIntoDB(&link)
+	require.NoError(err)
 
 	resp, err := testClient.Get(server.URL + "/abc")
 	require.NoError(err)
@@ -73,8 +96,12 @@ func TestLinkGetFoundHTML(t *testing.T) {
 	t.Skip("TODO: templates are acquired in main() which breaks these tests")
 	require := require.New(t)
 
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
 	link := Link{ID: "abc", URL: "https://example.com"}
-	err := InsertLinkIntoDB(&link)
+	err = InsertLinkIntoDB(&link)
 	require.NoError(err)
 
 	r, err := CreateServer(GetDatabaseURL())
@@ -108,6 +135,11 @@ func TestLinkGetFoundHTML(t *testing.T) {
 
 func TestLinkPostJSON(t *testing.T) {
 	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
 	r, err := CreateServer(GetDatabaseURL())
 	require.NoError(err)
 	server := httptest.NewServer(r)
@@ -123,6 +155,11 @@ func TestLinkPostJSON(t *testing.T) {
 
 func TestLinkPostFormData(t *testing.T) {
 	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
 	r, err := CreateServer(GetDatabaseURL())
 	require.NoError(err)
 	server := httptest.NewServer(r)
@@ -138,6 +175,11 @@ func TestLinkPostFormData(t *testing.T) {
 
 func TestLinkPostJSONURLNotProvided(t *testing.T) {
 	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
 	r, err := CreateServer(GetDatabaseURL())
 	require.NoError(err)
 	server := httptest.NewServer(r)
@@ -151,6 +193,11 @@ func TestLinkPostJSONURLNotProvided(t *testing.T) {
 
 func TestLinkPostFormDataURLNotProvided(t *testing.T) {
 	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
 	r, err := CreateServer(GetDatabaseURL())
 	require.NoError(err)
 	server := httptest.NewServer(r)
@@ -163,6 +210,11 @@ func TestLinkPostFormDataURLNotProvided(t *testing.T) {
 
 func TestLinkPostJSONURLAndIDNotProvided(t *testing.T) {
 	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
 	r, err := CreateServer(GetDatabaseURL())
 	require.NoError(err)
 	server := httptest.NewServer(r)
@@ -176,6 +228,11 @@ func TestLinkPostJSONURLAndIDNotProvided(t *testing.T) {
 
 func TestLinkPostFormDataURLAndIDNotProvided(t *testing.T) {
 	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
 	r, err := CreateServer(GetDatabaseURL())
 	require.NoError(err)
 	server := httptest.NewServer(r)
