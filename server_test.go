@@ -19,7 +19,11 @@ var testClient = &http.Client{
 }
 
 func GetDatabaseURL() string {
-	return os.Getenv("ES_URL")
+	s := os.Getenv("ES_URL")
+	if len(s) == 0 {
+		s = "http://localhost:9201"
+	}
+	return s
 }
 
 func MockHTTP(t *testing.T) (*recorder.Recorder, error) {
