@@ -29,8 +29,10 @@ ES_URL=http://localhost:9200 ./link-shortener
 Run tests:
 
 ```sh
-ES_URL=http://localhost:9200 go test 
+go test 
 ```
+
+We use [`go-vcr`](https://github.com/dnaeon/go-vcr) to record HTTP requests as fixtures so if you add a new test, you'll need to spin up Elastic in order to record your request.
 
 I'll put more info here later. This is kind of WIP right now.
 
