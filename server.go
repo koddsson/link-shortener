@@ -1,20 +1,38 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/go-chi/chi"
-	"github.com/syntaqx/render"
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/cbroglie/mustache"
+	"github.com/go-chi/chi"
+	"github.com/syntaqx/render"
 )
 
 var db *DB
+var indexHTML *mustache.Template
+var viewLinkHtml *mustache.Template
+
+type TemplateContextKey string
+
+const TemplateKey TemplateContextKey = "template"
+
+func WithTemplate(r *http.Request, t *mustache.Template) *http.Request {
+	c := r.Context()
+	return r.WithContext(context.WithValue(c, TemplateKey, t))
+}
 
 type Link struct {
 	ID  string `json:"id" form:"id"`
 	URL string `json:"url" form:"url,omitempty"`
+}
+
+func (l *Link) String() string {
+	return l.URL
 }
 
 func ErrInvalidRequest(err error) render.Renderer {
@@ -44,6 +62,10 @@ type ErrResponse struct {
 	StatusCode int    `json:"code"`            // user-level status message
 	StatusText string `json:"status"`          // user-level status message
 	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
+}
+
+func (e *ErrResponse) String() string {
+	return e.ErrorText
 }
 
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
@@ -83,8 +105,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
+		render.Render(w, WithTemplate(r, indexHTML), &Link{})
 	})
 
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +122,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		}
 
 		render.Status(r, http.StatusCreated)
+		w.Header().Set("Location", link.URL)
 		render.Render(w, r, link)
 	})
 
@@ -120,6 +142,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		}
 
 		render.Status(r, http.StatusCreated)
+		w.Header().Set("Location", link.URL)
 		render.Render(w, r, link)
 	})
 
@@ -130,7 +153,9 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			render.Render(w, r, ErrNotFound(err))
 			return
 		}
-		http.Redirect(w, r, link.URL, http.StatusFound)
+		render.Status(r, http.StatusFound)
+		w.Header().Set("Location", link.URL)
+		render.Render(w, WithTemplate(r, viewLinkHtml), link)
 	})
 	return r, nil
 }
@@ -140,9 +165,19 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 	switch render.GetAcceptedContentType(r) {
 	case render.ContentTypeJSON:
 		render.JSON(w, r, v)
-	default:
-		render.XML(w, r, v)
+		return
+	case render.ContentTypeHTML:
+		if t, ok := r.Context().Value(TemplateKey).(*mustache.Template); ok && t != nil {
+			html, err := t.Render(v)
+			if err != nil {
+				render.Render(w, r, ErrInternalServer(err))
+			} else {
+				render.HTML(w, r, html)
+			}
+			return
+		}
 	}
+	render.PlainText(w, r, fmt.Sprint(v))
 }
 
 func main() {
@@ -155,5 +190,16 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Up and running on port 3000!")
+	// TODO: We need to move the parsing of markdown templates somewhere so that
+	// the tests can pick them up and we can assert on them - perhaps we should also
+	// provide a way for the tests to mock these.
+	indexHTML, err = mustache.ParseFile("./index.mustache.html")
+	if err != nil {
+		panic(err)
+	}
+	viewLinkHtml, err = mustache.ParseFile("./link.view.mustache.html")
+	if err != nil {
+		panic(err)
+	}
 	http.ListenAndServe(":3000", r)
 }

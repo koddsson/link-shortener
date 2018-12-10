@@ -66,6 +66,34 @@ func TestLinkGetFound(t *testing.T) {
 	require.NoError(err)
 	body := string(bodyBytes[:])
 
+	require.Equal("https://example.com", body)
+}
+
+func TestLinkGetFoundHTML(t *testing.T) {
+	t.Skip("TODO: templates are acquired in main() which breaks these tests")
+	require := require.New(t)
+
+	link := Link{ID: "abc", URL: "https://example.com"}
+	err := InsertLinkIntoDB(&link)
+	require.NoError(err)
+
+	r, err := CreateServer(GetDatabaseURL())
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	req, err := http.NewRequest("GET", server.URL+"/abc", nil)
+	require.NoError(err)
+	req.Header.Set("Accept", "text/html")
+	resp, err := testClient.Do(req)
+	require.NoError(err)
+
+	require.Equal(302, resp.StatusCode)
+	require.Equal("https://example.com", resp.Header.Get("Location"))
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	require.NoError(err)
+	body := string(bodyBytes[:])
+
 	require.Equal("<a href=\"https://example.com\">Found</a>.\n\n", body)
 }
 
