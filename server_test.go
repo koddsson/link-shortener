@@ -71,13 +71,13 @@ func TestLinkGetFound(t *testing.T) {
 	require.NoError(err)
 	defer rec.Stop()
 
-	link := Link{ID: "abc", URL: "https://example.com"}
-	err = InsertLinkIntoDB(&link)
-	require.NoError(err)
-
 	r, err := CreateServer(GetDatabaseURL())
 	server := httptest.NewServer(r)
 	defer server.Close()
+
+	link := Link{ID: "abc", URL: "https://example.com"}
+	err = InsertLinkIntoDB(&link)
+	require.NoError(err)
 
 	resp, err := testClient.Get(server.URL + "/abc")
 	require.NoError(err)
