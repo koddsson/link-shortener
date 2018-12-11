@@ -26,15 +26,6 @@ func WithTemplate(r *http.Request, t *mustache.Template) *http.Request {
 	return r.WithContext(context.WithValue(c, TemplateKey, t))
 }
 
-type Link struct {
-	ID  string `json:"id" form:"id"`
-	URL string `json:"url" form:"url,omitempty"`
-}
-
-func (l *Link) String() string {
-	return l.URL
-}
-
 func ErrInvalidRequest(err error) render.Renderer {
 	return &ErrResponse{
 		Err:        err,
