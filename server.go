@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/cbroglie/mustache"
@@ -66,24 +65,6 @@ func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (link *Link) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
-func (link *Link) Bind(r *http.Request) error {
-	if link.URL == "" {
-		return errors.New("Malformed URL")
-	}
-	url, err := url.Parse(link.URL)
-	if err != nil {
-		return err
-	}
-	if url.Host == "" || url.Scheme == "" {
-		return errors.New("Malformed URL")
-	}
-	return nil
-}
-
 func CreateServer(dbURL string) (*chi.Mux, error) {
 	var err error
 	db, err = NewDB(dbURL)
@@ -100,6 +81,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	})
 
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+		// Pass an empty string to simulate an "optional" argument
 		link := &Link{}
 
 		if err := render.Bind(r, link); err != nil {
@@ -118,9 +100,9 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	})
 
 	r.Post("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		link := &Link{}
-
-		link.ID = chi.URLParam(r, "id")
+		link := &Link{
+			ID: chi.URLParam(r, "id"),
+		}
 
 		if err := render.Bind(r, link); err != nil {
 			render.Render(w, r, ErrInvalidRequest(err))

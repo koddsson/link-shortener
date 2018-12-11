@@ -94,8 +94,10 @@ func (db *DB) Migrate() error {
 }
 
 func (db *DB) AddLink(link *Link) (*Link, error) {
+	link.Timestamp = time.Now()
+
 	if link.ID == "" {
-		s := rand.New(rand.NewSource(time.Now().UnixNano()))
+		s := rand.New(rand.NewSource(link.Timestamp.UnixNano()))
 		// Generate and ID that does not exist in the database
 		for true {
 			// Add a new randomly generated alpha character to the id
