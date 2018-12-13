@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/stretchr/testify/require"
@@ -166,13 +167,9 @@ func TestLinkGetFoundJSON(t *testing.T) {
 
 	require.Equal("abc", jsonResponse["id"])
 	require.Equal("https://example.com", jsonResponse["url"])
-	require.Equal("yesterday", jsonResponse["@timestamp"])
 
-	require.ObjectsAreEqual(jsonResponse, map[string]string{
-		id:           "abc",
-		url:          "https://example.com",
-		"@timestamp": "yesterday",
-	})
+	_, err = time.Parse(time.RFC3339, jsonResponse["@timestamp"])
+	require.NoError(err)
 }
 
 // Post scenarios
