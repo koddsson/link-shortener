@@ -162,7 +162,7 @@ func TestLinkGetFoundJSON(t *testing.T) {
 
 	var jsonResponse map[string]string
 	defer io.Copy(ioutil.Discard, resp.Body)
-	json.NewDecoder(resp.Body).Decode(jsonResponse)
+	json.NewDecoder(resp.Body).Decode(&jsonResponse)
 
 	require.Equal("abc", jsonResponse["id"])
 	require.Equal("https://example.com", jsonResponse["url"])
