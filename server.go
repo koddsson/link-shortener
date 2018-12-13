@@ -126,8 +126,11 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			render.Render(w, r, ErrNotFound(err))
 			return
 		}
-		render.Status(r, http.StatusFound)
-		w.Header().Set("Location", link.URL)
+		// Only render with 302 status for non-JSON responses
+		if render.GetAcceptedContentType(r) != render.ContentTypeJSON {
+			render.Status(r, http.StatusFound)
+			w.Header().Set("Location", link.URL)
+		}
 		render.Render(w, WithTemplate(r, viewLinkHtml), link)
 	})
 	return r, nil
