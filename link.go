@@ -38,7 +38,8 @@ func (link *Link) Bind(r *http.Request) error {
 }
 
 // Migrate makes sure that Elastic is primed to receive data
-func (link *Link) Migrate() error {
+func (link *Link) Migrate(db *DB) error {
+	// TODO: Add Elastic struct tags to Link struct and then reflect those to create the Elastic migration here.
 	response, err := db.Put("/links/_mappings/link", []byte(`{"properties": {"@timestamp": {"type": "date"}, "url": {"type": "text", "analyzer": "standard"}}}`))
 	if err != nil {
 		return err

@@ -14,7 +14,7 @@ import (
 )
 
 type Model interface {
-	Migrate() error
+	Migrate(*DB) error
 	Index() string
 }
 
@@ -94,7 +94,7 @@ func (db *DB) Migrate(m Model) error {
 			return errors.New("Could not create index: " + m.Index())
 		}
 	}
-	return m.Migrate()
+	return m.Migrate(db)
 }
 
 func (db *DB) AddLink(link *Link) (*Link, error) {
