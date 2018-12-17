@@ -43,6 +43,7 @@ func (link *Link) Bind(r *http.Request) error {
 // Migrate makes sure that Elastic is primed to receive data
 func (link *Link) Migrate(db *DB) error {
 	val := reflect.ValueOf(link).Elem()
+	modelName := reflect.TypeOf(link).Elem().Name()
 	mappings := map[string]interface{}{
 		"properties": map[string]interface{}{},
 	}
@@ -78,7 +79,7 @@ func (link *Link) Migrate(db *DB) error {
 		return err
 	}
 
-	response, err := db.Put("/links/_mappings/link", jsonBytes)
+	response, err := db.Put(link.Index()+"/_mappings"+modelName, jsonBytes)
 	if err != nil {
 		return err
 	}
