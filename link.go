@@ -1,17 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
+	"reflect"
+	"strings"
 	"time"
 )
 
 // Link describes a link in the database
 type Link struct {
 	ID        string    `json:"id" form:"id"`
-	URL       string    `json:"url" form:"url,omitempty"`
-	Timestamp time.Time `json:"@timestamp" form:"@timestamp"`
+	URL       string    `json:"url" form:"url,omitempty" db:"url;type:text;analyzer:standard"`
+	Timestamp time.Time `json:"@timestamp" form:"@timestamp" db:"@timestamp;type:date"`
 }
 
 func (link *Link) String() string {
@@ -39,11 +42,47 @@ func (link *Link) Bind(r *http.Request) error {
 
 // Migrate makes sure that Elastic is primed to receive data
 func (link *Link) Migrate(db *DB) error {
-	// TODO: Add Elastic struct tags to Link struct and then reflect those to create the Elastic migration here.
-	response, err := db.Put("/links/_mappings/link", []byte(`{"properties": {"@timestamp": {"type": "date"}, "url": {"type": "text", "analyzer": "standard"}}}`))
+	val := reflect.ValueOf(link).Elem()
+	// TODO: Lift this back into database
+	// TODO: Unfuck this
+	mappings := map[string]map[string]map[string]string{
+		"properties": map[string]map[string]string{},
+	}
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Type().Field(i)
+		tags := strings.Split(field.Tag.Get("db"), ";")
+		name, values := tags[0], tags[1:]
+		if name == "" {
+			name = field.Name
+		}
+		if name == "ID" {
+			continue
+		}
+		if len(values) == 0 {
+			continue
+		}
+
+		for _, element := range values {
+			// TODO: Make this DRY
+			if strings.HasPrefix(element, "type:") {
+				mappings["properties"][name]["type"] = strings.TrimPrefix(element, "type:")
+			}
+			if strings.HasPrefix(element, "analyzer:") {
+				mappings["properties"][name]["analyzer"] = strings.TrimPrefix(element, "analyzer:")
+			}
+		}
+	}
+
+	jsonBytes, err := json.Marshal(mappings)
 	if err != nil {
 		return err
 	}
+
+	response, err := db.Put("/links/_mappings/link", jsonBytes)
+	if err != nil {
+		return err
+	}
+
 	if response.StatusCode != http.StatusOK {
 		return errors.New("Could not set mappings for index links")
 	}
