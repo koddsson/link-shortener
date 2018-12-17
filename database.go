@@ -43,7 +43,7 @@ func jsonResponse(r *http.Response, v interface{}) {
 	json.NewDecoder(r.Body).Decode(v)
 }
 
-func (db *DB) CreateURL(path string) string {
+func (db *DB) createURL(path string) string {
 	u := new(url.URL)
 	u.Scheme = db.URL.Scheme
 	u.Host = db.URL.Host
@@ -54,7 +54,7 @@ func (db *DB) CreateURL(path string) string {
 
 // Get makes a "GET" request to Elastic
 func (db *DB) Get(path string) (*http.Response, error) {
-	request, err := http.NewRequest("GET", db.CreateURL(path), nil)
+	request, err := http.NewRequest("GET", db.createURL(path), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (db *DB) Get(path string) (*http.Response, error) {
 
 // Put makes a "PUT" request to Elastic
 func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
-	request, err := http.NewRequest("PUT", db.CreateURL(path), bytes.NewBuffer(jsonbytes))
+	request, err := http.NewRequest("PUT", db.createURL(path), bytes.NewBuffer(jsonbytes))
 	if err != nil {
 		return nil, err
 	}
