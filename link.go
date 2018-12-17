@@ -7,16 +7,18 @@ import (
 	"time"
 )
 
+// Link describes a link in the database
 type Link struct {
 	ID        string    `json:"id" form:"id"`
 	URL       string    `json:"url" form:"url,omitempty"`
 	Timestamp time.Time `json:"@timestamp" form:"@timestamp"`
 }
 
-func (l *Link) String() string {
-	return l.URL
+func (link *Link) String() string {
+	return link.URL
 }
 
+// Render is a `go-chi` middleware
 func (link *Link) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
