@@ -43,10 +43,8 @@ func (link *Link) Bind(r *http.Request) error {
 // Migrate makes sure that Elastic is primed to receive data
 func (link *Link) Migrate(db *DB) error {
 	val := reflect.ValueOf(link).Elem()
-	// TODO: Lift this back into database
-	// TODO: Unfuck this
-	mappings := map[string]map[string]map[string]string{
-		"properties": map[string]map[string]string{},
+	mappings := map[string]interface{}{
+		"properties": map[string]interface{}{},
 	}
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Type().Field(i)
@@ -62,13 +60,15 @@ func (link *Link) Migrate(db *DB) error {
 			continue
 		}
 
+		mappings["properties"].(map[string]interface{})[name] = map[string]interface{}{}
+
 		for _, element := range values {
 			// TODO: Make this DRY
 			if strings.HasPrefix(element, "type:") {
-				mappings["properties"][name]["type"] = strings.TrimPrefix(element, "type:")
+				mappings["properties"].(map[string]interface{})[name].(map[string]interface{})["type"] = strings.TrimPrefix(element, "type:")
 			}
 			if strings.HasPrefix(element, "analyzer:") {
-				mappings["properties"][name]["analyzer"] = strings.TrimPrefix(element, "analyzer:")
+				mappings["properties"].(map[string]interface{})[name].(map[string]interface{})["analyzer"] = strings.TrimPrefix(element, "analyzer:")
 			}
 		}
 	}
