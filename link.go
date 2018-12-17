@@ -1,12 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
-	"reflect"
-	"strings"
 	"time"
 )
 
@@ -36,56 +33,6 @@ func (link *Link) Bind(r *http.Request) error {
 	}
 	if url.Host == "" || url.Scheme == "" {
 		return errors.New("Malformed URL")
-	}
-	return nil
-}
-
-// Migrate makes sure that Elastic is primed to receive data
-func (link *Link) Migrate(db *DB) error {
-	val := reflect.ValueOf(link).Elem()
-	modelName := reflect.TypeOf(link).Elem().Name()
-	mappings := map[string]interface{}{
-		"properties": map[string]interface{}{},
-	}
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Type().Field(i)
-		tags := strings.Split(field.Tag.Get("db"), ";")
-		name, values := tags[0], tags[1:]
-		if name == "" {
-			name = field.Name
-		}
-		if name == "ID" {
-			continue
-		}
-		if len(values) == 0 {
-			continue
-		}
-
-		mappings["properties"].(map[string]interface{})[name] = map[string]interface{}{}
-
-		for _, element := range values {
-			// TODO: Make this DRY
-			if strings.HasPrefix(element, "type:") {
-				mappings["properties"].(map[string]interface{})[name].(map[string]interface{})["type"] = strings.TrimPrefix(element, "type:")
-			}
-			if strings.HasPrefix(element, "analyzer:") {
-				mappings["properties"].(map[string]interface{})[name].(map[string]interface{})["analyzer"] = strings.TrimPrefix(element, "analyzer:")
-			}
-		}
-	}
-
-	jsonBytes, err := json.Marshal(mappings)
-	if err != nil {
-		return err
-	}
-
-	response, err := db.Put(link.Index()+"/_mappings"+modelName, jsonBytes)
-	if err != nil {
-		return err
-	}
-
-	if response.StatusCode != http.StatusOK {
-		return errors.New("Could not set mappings for index links")
 	}
 	return nil
 }

@@ -10,11 +10,12 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"reflect"
+	"strings"
 	"time"
 )
 
 type Model interface {
-	Migrate(*DB) error
 	Index() string
 }
 
@@ -94,7 +95,53 @@ func (db *DB) Migrate(m Model) error {
 			return errors.New("Could not create index: " + m.Index())
 		}
 	}
-	return m.Migrate(db)
+
+	val := reflect.ValueOf(m).Elem()
+	modelName := reflect.TypeOf(m).Elem().Name()
+	mappings := map[string]interface{}{
+		"properties": map[string]interface{}{},
+	}
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Type().Field(i)
+		tags := strings.Split(field.Tag.Get("db"), ";")
+		name, values := tags[0], tags[1:]
+		if name == "" {
+			name = field.Name
+		}
+		if name == "ID" {
+			continue
+		}
+		if len(values) == 0 {
+			continue
+		}
+
+		mappings["properties"].(map[string]interface{})[name] = map[string]interface{}{}
+
+		for _, element := range values {
+			// TODO: Make this DRY
+			if strings.HasPrefix(element, "type:") {
+				mappings["properties"].(map[string]interface{})[name].(map[string]interface{})["type"] = strings.TrimPrefix(element, "type:")
+			}
+			if strings.HasPrefix(element, "analyzer:") {
+				mappings["properties"].(map[string]interface{})[name].(map[string]interface{})["analyzer"] = strings.TrimPrefix(element, "analyzer:")
+			}
+		}
+	}
+
+	jsonBytes, err := json.Marshal(mappings)
+	if err != nil {
+		return err
+	}
+
+	response, err = db.Put(m.Index()+"/_mappings/"+strings.ToLower(modelName), jsonBytes)
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return errors.New("Could not set mappings for index " + m.Index())
+	}
+	return nil
 }
 
 func (db *DB) AddLink(link *Link) (*Link, error) {
