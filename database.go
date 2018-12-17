@@ -13,10 +13,12 @@ import (
 	"time"
 )
 
+// DB is a very simple ORM
 type DB struct {
 	URL *url.URL
 }
 
+// NewDB eases creation by validating the URL
 func NewDB(u string) (*DB, error) {
 	url, err := url.Parse(u)
 	if err != nil {
@@ -50,6 +52,7 @@ func (db *DB) CreateURL(path string) string {
 	return u.String()
 }
 
+// Get makes a "GET" request to Elastic
 func (db *DB) Get(path string) (*http.Response, error) {
 	request, err := http.NewRequest("GET", db.CreateURL(path), nil)
 	if err != nil {
@@ -59,6 +62,7 @@ func (db *DB) Get(path string) (*http.Response, error) {
 	return client.Do(request)
 }
 
+// Put makes a "PUT" request to Elastic
 func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
 	request, err := http.NewRequest("PUT", db.CreateURL(path), bytes.NewBuffer(jsonbytes))
 	if err != nil {
@@ -69,6 +73,7 @@ func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
 	return client.Do(request)
 }
 
+// Migrate makes sure that the Elastic cluster is primed for data
 func (db *DB) Migrate() error {
 	response, err := db.Get("/links")
 	if err != nil {
