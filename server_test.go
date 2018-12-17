@@ -2,14 +2,18 @@ package main
 
 import (
 	"bytes"
-	"github.com/dnaeon/go-vcr/recorder"
-	"github.com/stretchr/testify/require"
+	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/dnaeon/go-vcr/recorder"
+	"github.com/stretchr/testify/require"
 )
 
 var testClient = &http.Client{
@@ -27,7 +31,17 @@ func GetDatabaseURL() string {
 }
 
 func MockHTTP(t *testing.T) (*recorder.Recorder, error) {
-	r, err := recorder.New("fixtures/elastic/" + t.Name())
+	var r *recorder.Recorder
+	var err error
+	name := "fixtures/elastic/" + t.Name()
+
+	s := os.Getenv("ES_URL")
+	if len(s) == 0 {
+		r, err = recorder.New(name)
+	} else {
+		r, err = recorder.NewAsMode(name, recorder.ModeDisabled, http.DefaultTransport)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +136,40 @@ func TestLinkGetFoundHTML(t *testing.T) {
 	body := string(bodyBytes[:])
 
 	require.Equal("<a href=\"https://example.com\">Found</a>.\n\n", body)
+}
+
+func TestLinkGetFoundJSON(t *testing.T) {
+	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
+	link := Link{ID: "abc", URL: "https://example.com"}
+	err = InsertLinkIntoDB(&link)
+	require.NoError(err)
+
+	r, err := CreateServer(GetDatabaseURL())
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	req, err := http.NewRequest("GET", server.URL+"/abc", nil)
+	require.NoError(err)
+	req.Header.Set("Accept", "application/json")
+	resp, err := testClient.Do(req)
+	require.NoError(err)
+
+	require.Equal(200, resp.StatusCode)
+
+	var jsonResponse map[string]string
+	defer io.Copy(ioutil.Discard, resp.Body)
+	json.NewDecoder(resp.Body).Decode(&jsonResponse)
+
+	require.Equal("abc", jsonResponse["id"])
+	require.Equal("https://example.com", jsonResponse["url"])
+
+	_, err = time.Parse(time.RFC3339, jsonResponse["@timestamp"])
+	require.NoError(err)
 }
 
 // Post scenarios
