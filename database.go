@@ -35,7 +35,6 @@ func NewDB(u string) (*DB, error) {
 	return db, nil
 }
 
-var links = []*Link{}
 var client = &http.Client{}
 
 func jsonResponse(r *http.Response, v interface{}) {
