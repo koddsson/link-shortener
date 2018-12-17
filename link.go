@@ -34,3 +34,20 @@ func (link *Link) Bind(r *http.Request) error {
 	}
 	return nil
 }
+
+// Migrate makes sure that Elastic is primed to receive data
+func (link *Link) Migrate() error {
+	response, err := db.Put("/links/_mappings/link", []byte(`{"properties": {"@timestamp": {"type": "date"}, "url": {"type": "text", "analyzer": "standard"}}}`))
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		return errors.New("Could not set mappings for index links")
+	}
+	return nil
+}
+
+// Index returns the Elastic index name
+func (link *Link) Index() string {
+	return "links"
+}

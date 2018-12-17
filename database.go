@@ -13,6 +13,11 @@ import (
 	"time"
 )
 
+type Model interface {
+	Migrate() error
+	Index() string
+}
+
 var client = &http.Client{}
 
 // DB is a very simple ORM
@@ -30,7 +35,6 @@ func NewDB(u string) (*DB, error) {
 		return nil, errors.New("Malformed URL")
 	}
 	db := &DB{URL: url}
-	err = db.Migrate()
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +51,9 @@ func (db *DB) createURL(path string) string {
 	u.Scheme = db.URL.Scheme
 	u.Host = db.URL.Host
 	u.User = db.URL.User
+	if path[0] != '/' {
+		path = "/" + path
+	}
 	u.Path = path
 	return u.String()
 }
@@ -73,28 +80,21 @@ func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
 }
 
 // Migrate makes sure that the Elastic cluster is primed for data
-func (db *DB) Migrate() error {
-	response, err := db.Get("/links")
+func (db *DB) Migrate(m Model) error {
+	response, err := db.Get(m.Index())
 	if err != nil {
 		return err
 	}
 	if response.StatusCode != http.StatusOK {
-		response, err := db.Put("/links", []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
+		response, err := db.Put(m.Index(), []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
 		if err != nil {
 			return err
 		}
 		if response.StatusCode != http.StatusOK {
-			return errors.New("Could not create index links")
+			return errors.New("Could not create index: " + m.Index())
 		}
 	}
-	response, err = db.Put("/links/_mappings/link", []byte(`{"properties": {"@timestamp": {"type": "date"}, "url": {"type": "text", "analyzer": "standard"}}}`))
-	if err != nil {
-		return err
-	}
-	if response.StatusCode != http.StatusOK {
-		return errors.New("Could not set mappings for index links")
-	}
-	return nil
+	return m.Migrate()
 }
 
 func (db *DB) AddLink(link *Link) (*Link, error) {
