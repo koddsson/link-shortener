@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+var client = &http.Client{}
+
 // DB is a very simple ORM
 type DB struct {
 	URL *url.URL
@@ -34,8 +36,6 @@ func NewDB(u string) (*DB, error) {
 	}
 	return db, nil
 }
-
-var client = &http.Client{}
 
 func jsonResponse(r *http.Response, v interface{}) {
 	defer io.Copy(ioutil.Discard, r.Body)
