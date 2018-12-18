@@ -222,7 +222,7 @@ func (db *DB) Get(m Model) error {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return errors.New("Link not found in database")
+		return errors.New(modelName + " not found in database")
 	}
 
 	jsonResponse(response, &m)
