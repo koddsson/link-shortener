@@ -93,7 +93,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			return
 		}
 
-		_, err := db.AddLink(link)
+		err := db.Save(link)
 		if err != nil {
 			render.Render(w, r, ErrInternalServer(err))
 		}
@@ -113,7 +113,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			return
 		}
 
-		_, err := db.AddLink(link)
+		err := db.Save(link)
 		if err != nil {
 			render.Render(w, r, ErrInternalServer(err))
 		}

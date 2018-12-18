@@ -145,24 +145,28 @@ func (db *DB) Migrate(m Model) error {
 	return nil
 }
 
-func (db *DB) AddLink(link *Link) (*Link, error) {
-	err := link.Prepare()
+func (db *DB) Save(m Model) error {
+	err := m.Prepare()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if link.ID == "" {
+	modelType := reflect.TypeOf(m)
+	modelName := strings.ToLower(modelType.Elem().Name())
+	ID := reflect.ValueOf(m).Elem().FieldByName("ID").String()
+
+	if ID == "" {
 		// Generate and ID that does not exist in the database
 		for true {
-			err := link.GenerateID()
+			err := m.GenerateID()
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			// Check if the newly generate ID exists in DB
-			exists, err := db.Exists(link)
+			exists, err := db.Exists(m)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			// If the ID is not found in the DB we can break
@@ -173,14 +177,16 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 		}
 	}
 
-	jsonbytes, err := json.Marshal(link)
+	jsonbytes, err := json.Marshal(m)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	response, err := putRequest(createURL(db.URL, []string{"links", "link", link.ID}), jsonbytes)
+	ID = reflect.ValueOf(m).Elem().FieldByName("ID").String()
+
+	response, err := putRequest(createURL(db.URL, []string{m.Index(), modelName, ID}), jsonbytes)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var dbResponse map[string]string
@@ -188,10 +194,10 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 	result := dbResponse["result"]
 
 	if result != "created" && result != "updated" && result != "noop" {
-		return nil, errors.New("Could not insert record got " + dbResponse["result"])
+		return errors.New("Could not insert record got " + dbResponse["result"])
 	}
 
-	return link, nil
+	return nil
 }
 
 func (db *DB) Exists(m Model) (bool, error) {
