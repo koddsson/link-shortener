@@ -48,21 +48,22 @@ func jsonResponse(r *http.Response, v interface{}) {
 	json.NewDecoder(r.Body).Decode(v)
 }
 
-func (db *DB) createURL(path string) string {
+func createURL(ur *url.URL, path []string) string {
 	u := new(url.URL)
-	u.Scheme = db.URL.Scheme
-	u.Host = db.URL.Host
-	u.User = db.URL.User
-	if path[0] != '/' {
-		path = "/" + path
+	u.Scheme = ur.Scheme
+	u.Host = ur.Host
+	u.User = ur.User
+	escapedPath := make([]string, len(path))
+	for i, s := range path {
+		escapedPath[i] = url.PathEscape(s)
 	}
-	u.Path = path
+	u.Path = "/" + strings.Join(escapedPath, "/")
+
 	return u.String()
 }
 
-// GetRequest makes a "GET" request to Elastic
-func (db *DB) GetRequest(path string) (*http.Response, error) {
-	request, err := http.NewRequest("GET", db.createURL(path), nil)
+func getRequest(path string) (*http.Response, error) {
+	request, err := http.NewRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -70,9 +71,8 @@ func (db *DB) GetRequest(path string) (*http.Response, error) {
 	return client.Do(request)
 }
 
-// PutRequest makes a "PUT" request to Elastic
-func (db *DB) PutRequest(path string, jsonbytes []byte) (*http.Response, error) {
-	request, err := http.NewRequest("PUT", db.createURL(path), bytes.NewBuffer(jsonbytes))
+func putRequest(path string, jsonbytes []byte) (*http.Response, error) {
+	request, err := http.NewRequest("PUT", path, bytes.NewBuffer(jsonbytes))
 	if err != nil {
 		return nil, err
 	}
@@ -83,12 +83,12 @@ func (db *DB) PutRequest(path string, jsonbytes []byte) (*http.Response, error) 
 
 // Migrate makes sure that the Elastic cluster is primed for data
 func (db *DB) Migrate(m Model) error {
-	response, err := db.GetRequest(m.Index())
+	response, err := getRequest(createURL(db.URL, []string{m.Index()}))
 	if err != nil {
 		return err
 	}
 	if response.StatusCode != http.StatusOK {
-		response, err := db.PutRequest(m.Index(), []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
+		response, err := putRequest(createURL(db.URL, []string{m.Index()}), []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
 		if err != nil {
 			return err
 		}
@@ -134,7 +134,7 @@ func (db *DB) Migrate(m Model) error {
 		return err
 	}
 
-	response, err = db.PutRequest(m.Index()+"/_mappings/"+strings.ToLower(modelName), jsonBytes)
+	response, err = putRequest(createURL(db.URL, []string{m.Index(), "_mappings", strings.ToLower(modelName)}), jsonBytes)
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 		return nil, err
 	}
 
-	response, err := db.PutRequest("/links/link/"+url.PathEscape(link.ID), jsonbytes)
+	response, err := putRequest(createURL(db.URL, []string{"links", "link", link.ID}), jsonbytes)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (db *DB) Exists(m Model) (bool, error) {
 	modelName := strings.ToLower(modelType.Elem().Name())
 	ID := reflect.ValueOf(m).Elem().FieldByName("ID").String()
 
-	response, err := db.GetRequest(m.Index() + "/" + modelName + "/" + url.PathEscape(ID) + "/_source")
+	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName, ID, "_source"}))
 	if err != nil {
 		return false, err
 	}
@@ -216,7 +216,7 @@ func (db *DB) Get(m Model) error {
 	modelName := strings.ToLower(modelType.Elem().Name())
 	ID := reflect.ValueOf(m).Elem().FieldByName("ID").String()
 
-	response, err := db.GetRequest(m.Index() + "/" + modelName + "/" + url.PathEscape(ID) + "/_source")
+	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName, ID, "_source"}))
 	if err != nil {
 		return err
 	}
