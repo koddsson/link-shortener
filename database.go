@@ -60,8 +60,8 @@ func (db *DB) createURL(path string) string {
 	return u.String()
 }
 
-// Get makes a "GET" request to Elastic
-func (db *DB) Get(path string) (*http.Response, error) {
+// GetRequest makes a "GET" request to Elastic
+func (db *DB) GetRequest(path string) (*http.Response, error) {
 	request, err := http.NewRequest("GET", db.createURL(path), nil)
 	if err != nil {
 		return nil, err
@@ -70,8 +70,8 @@ func (db *DB) Get(path string) (*http.Response, error) {
 	return client.Do(request)
 }
 
-// Put makes a "PUT" request to Elastic
-func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
+// PutRequest makes a "PUT" request to Elastic
+func (db *DB) PutRequest(path string, jsonbytes []byte) (*http.Response, error) {
 	request, err := http.NewRequest("PUT", db.createURL(path), bytes.NewBuffer(jsonbytes))
 	if err != nil {
 		return nil, err
@@ -83,12 +83,12 @@ func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
 
 // Migrate makes sure that the Elastic cluster is primed for data
 func (db *DB) Migrate(m Model) error {
-	response, err := db.Get(m.Index())
+	response, err := db.GetRequest(m.Index())
 	if err != nil {
 		return err
 	}
 	if response.StatusCode != http.StatusOK {
-		response, err := db.Put(m.Index(), []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
+		response, err := db.PutRequest(m.Index(), []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
 		if err != nil {
 			return err
 		}
@@ -134,7 +134,7 @@ func (db *DB) Migrate(m Model) error {
 		return err
 	}
 
-	response, err = db.Put(m.Index()+"/_mappings/"+strings.ToLower(modelName), jsonBytes)
+	response, err = db.PutRequest(m.Index()+"/_mappings/"+strings.ToLower(modelName), jsonBytes)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 		return nil, err
 	}
 
-	response, err := db.Put("/links/link/"+url.PathEscape(link.ID), jsonbytes)
+	response, err := db.PutRequest("/links/link/"+url.PathEscape(link.ID), jsonbytes)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +193,7 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 
 func (db *DB) GetLink(ID string) (*Link, error) {
 	var link Link
-	response, err := db.Get("/links/link/" + url.PathEscape(ID) + "/_source")
+	response, err := db.GetRequest("/links/link/" + url.PathEscape(ID) + "/_source")
 	if err != nil {
 		return nil, err
 	}
