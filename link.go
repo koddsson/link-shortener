@@ -11,8 +11,10 @@ import (
 
 // Link describes a link in the database
 type Link struct {
-	ID        string    `json:"id" form:"id"`
-	URL       string    `json:"url" form:"url,omitempty" db:"url;type:text;analyzer:standard"`
+	ID  string `json:"id" form:"id"`
+	URL string `json:"url" form:"url,omitempty" db:"url;type:text;analyzer:standard"`
+
+	// TODO: Rename this? This is the created time.
 	Timestamp time.Time `json:"@timestamp" form:"@timestamp" db:"@timestamp;type:date"`
 }
 
