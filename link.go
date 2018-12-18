@@ -41,3 +41,12 @@ func (link *Link) Bind(r *http.Request) error {
 func (link *Link) Index() string {
 	return "links"
 }
+
+// Prepare makes sure that the Link has a ID and a Timestamp
+func (link *Link) Prepare() error {
+	if link.Timestamp.IsZero() {
+		link.Timestamp = time.Now()
+	}
+
+	return nil
+}

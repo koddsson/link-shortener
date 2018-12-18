@@ -12,11 +12,14 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
-	"time"
 )
 
+// Model is a interface that all models must implement
 type Model interface {
 	Index() string
+
+	// Prepare is a hook that will get called before the model is inserted into the database
+	Prepare() error
 }
 
 var client = &http.Client{}
@@ -145,7 +148,10 @@ func (db *DB) Migrate(m Model) error {
 }
 
 func (db *DB) AddLink(link *Link) (*Link, error) {
-	link.Timestamp = time.Now()
+	err := link.Prepare()
+	if err != nil {
+		return nil, err
+	}
 
 	if link.ID == "" {
 		s := rand.New(rand.NewSource(link.Timestamp.UnixNano()))
