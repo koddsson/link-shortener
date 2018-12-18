@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -17,9 +15,9 @@ import (
 // Model is a interface that all models must implement
 type Model interface {
 	Index() string
-
 	// Prepare is a hook that will get called before the model is inserted into the database
 	Prepare() error
+	GenerateID() error
 }
 
 var client = &http.Client{}
@@ -154,11 +152,12 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 	}
 
 	if link.ID == "" {
-		s := rand.New(rand.NewSource(link.Timestamp.UnixNano()))
 		// Generate and ID that does not exist in the database
 		for true {
-			// Add a new randomly generated alpha character to the id
-			link.ID = link.ID + fmt.Sprintf("%s", string(byte(97+s.Intn(25))))
+			err := link.GenerateID()
+			if err != nil {
+				return nil, err
+			}
 
 			// Check if the newly generate ID exists in DB
 			foundLink, _ := db.GetLink(link.ID)

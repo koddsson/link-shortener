@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"time"
@@ -40,6 +42,16 @@ func (link *Link) Bind(r *http.Request) error {
 // Index returns the Elastic index name
 func (link *Link) Index() string {
 	return "links"
+}
+
+// GenerateID will set the ID of the link to a randomly generated ID
+func (link *Link) GenerateID() error {
+	s := rand.New(rand.NewSource(link.Timestamp.UnixNano()))
+
+	// Add a new randomly generated alpha character to the id
+	link.ID = link.ID + fmt.Sprintf("%s", string(byte(97+s.Intn(25))))
+
+	return nil
 }
 
 // Prepare makes sure that the Link has a ID and a Timestamp
