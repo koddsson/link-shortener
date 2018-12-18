@@ -71,6 +71,10 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = db.Migrate(&Link{})
+	if err != nil {
+		return nil, err
+	}
 
 	render.Respond = Respond
 

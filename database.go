@@ -10,13 +10,23 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"reflect"
+	"strings"
 	"time"
 )
 
+type Model interface {
+	Index() string
+}
+
+var client = &http.Client{}
+
+// DB is a very simple ORM
 type DB struct {
 	URL *url.URL
 }
 
+// NewDB eases creation by validating the URL
 func NewDB(u string) (*DB, error) {
 	url, err := url.Parse(u)
 	if err != nil {
@@ -26,32 +36,32 @@ func NewDB(u string) (*DB, error) {
 		return nil, errors.New("Malformed URL")
 	}
 	db := &DB{URL: url}
-	err = db.Migrate()
 	if err != nil {
 		return nil, err
 	}
 	return db, nil
 }
 
-var links = []*Link{}
-var client = &http.Client{}
-
 func jsonResponse(r *http.Response, v interface{}) {
 	defer io.Copy(ioutil.Discard, r.Body)
 	json.NewDecoder(r.Body).Decode(v)
 }
 
-func (db *DB) CreateURL(path string) string {
+func (db *DB) createURL(path string) string {
 	u := new(url.URL)
 	u.Scheme = db.URL.Scheme
 	u.Host = db.URL.Host
 	u.User = db.URL.User
+	if path[0] != '/' {
+		path = "/" + path
+	}
 	u.Path = path
 	return u.String()
 }
 
+// Get makes a "GET" request to Elastic
 func (db *DB) Get(path string) (*http.Response, error) {
-	request, err := http.NewRequest("GET", db.CreateURL(path), nil)
+	request, err := http.NewRequest("GET", db.createURL(path), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +69,9 @@ func (db *DB) Get(path string) (*http.Response, error) {
 	return client.Do(request)
 }
 
+// Put makes a "PUT" request to Elastic
 func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
-	request, err := http.NewRequest("PUT", db.CreateURL(path), bytes.NewBuffer(jsonbytes))
+	request, err := http.NewRequest("PUT", db.createURL(path), bytes.NewBuffer(jsonbytes))
 	if err != nil {
 		return nil, err
 	}
@@ -69,26 +80,66 @@ func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
 	return client.Do(request)
 }
 
-func (db *DB) Migrate() error {
-	response, err := db.Get("/links")
+// Migrate makes sure that the Elastic cluster is primed for data
+func (db *DB) Migrate(m Model) error {
+	response, err := db.Get(m.Index())
 	if err != nil {
 		return err
 	}
 	if response.StatusCode != http.StatusOK {
-		response, err := db.Put("/links", []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
+		response, err := db.Put(m.Index(), []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
 		if err != nil {
 			return err
 		}
 		if response.StatusCode != http.StatusOK {
-			return errors.New("Could not create index links")
+			return errors.New("Could not create index: " + m.Index())
 		}
 	}
-	response, err = db.Put("/links/_mappings/link", []byte(`{"properties": {"@timestamp": {"type": "date"}, "url": {"type": "text", "analyzer": "standard"}}}`))
+
+	val := reflect.ValueOf(m).Elem()
+	modelName := reflect.TypeOf(m).Elem().Name()
+	mappings := map[string]interface{}{
+		"properties": map[string]interface{}{},
+	}
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Type().Field(i)
+		tags := strings.Split(field.Tag.Get("db"), ";")
+		name, values := tags[0], tags[1:]
+		if name == "" {
+			name = field.Name
+		}
+		if name == "ID" {
+			continue
+		}
+		if len(values) == 0 {
+			continue
+		}
+
+		mappings["properties"].(map[string]interface{})[name] = map[string]interface{}{}
+
+		for _, element := range values {
+			// TODO: Make this DRY
+			if strings.HasPrefix(element, "type:") {
+				mappings["properties"].(map[string]interface{})[name].(map[string]interface{})["type"] = strings.TrimPrefix(element, "type:")
+			}
+			if strings.HasPrefix(element, "analyzer:") {
+				mappings["properties"].(map[string]interface{})[name].(map[string]interface{})["analyzer"] = strings.TrimPrefix(element, "analyzer:")
+			}
+		}
+	}
+
+	jsonBytes, err := json.Marshal(mappings)
 	if err != nil {
 		return err
 	}
+
+	response, err = db.Put(m.Index()+"/_mappings/"+strings.ToLower(modelName), jsonBytes)
+	if err != nil {
+		return err
+	}
+
 	if response.StatusCode != http.StatusOK {
-		return errors.New("Could not set mappings for index links")
+		return errors.New("Could not set mappings for index " + m.Index())
 	}
 	return nil
 }
