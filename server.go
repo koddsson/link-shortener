@@ -125,7 +125,8 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		ID := chi.URLParam(r, "id")
-		link, err := db.GetLink(ID)
+		link := &Link{ID: ID}
+		err := db.Get(link)
 		if err != nil {
 			render.Render(w, r, ErrNotFound(err))
 			return

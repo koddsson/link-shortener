@@ -191,20 +191,21 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 	return link, nil
 }
 
-func (db *DB) GetLink(ID string) (*Link, error) {
-	var link Link
-	response, err := db.GetRequest("/links/link/" + url.PathEscape(ID) + "/_source")
+func (db *DB) Get(m Model) error {
+	modelType := reflect.TypeOf(m)
+	modelName := strings.ToLower(modelType.Elem().Name())
+	ID := reflect.ValueOf(m).Elem().FieldByName("ID").String()
+
+	response, err := db.GetRequest(m.Index() + "/" + modelName + "/" + url.PathEscape(ID) + "/_source")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New("Link not found in database")
+		return errors.New("Link not found in database")
 	}
 
-	jsonResponse(response, &link)
+	jsonResponse(response, &m)
 
-	link.ID = ID
-
-	return &link, nil
+	return nil
 }
