@@ -160,11 +160,14 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 			}
 
 			// Check if the newly generate ID exists in DB
-			foundLink, _ := db.GetLink(link.ID)
+			exists, err := db.Exists(link)
+			if err != nil {
+				return nil, err
+			}
 
 			// If the ID is not found in the DB we can break
 			// the loop because we have a unique ID
-			if foundLink == nil {
+			if !exists {
 				break
 			}
 		}
@@ -189,6 +192,23 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 	}
 
 	return link, nil
+}
+
+func (db *DB) Exists(m Model) (bool, error) {
+	modelType := reflect.TypeOf(m)
+	modelName := strings.ToLower(modelType.Elem().Name())
+	ID := reflect.ValueOf(m).Elem().FieldByName("ID").String()
+
+	response, err := db.GetRequest(m.Index() + "/" + modelName + "/" + url.PathEscape(ID) + "/_source")
+	if err != nil {
+		return false, err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (db *DB) Get(m Model) error {
