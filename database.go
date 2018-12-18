@@ -14,9 +14,13 @@ import (
 
 // Model is a interface that all models must implement
 type Model interface {
+	// Index is used to determine the name for the Model's Index
 	Index() string
-	// Prepare is a hook that will get called before the model is inserted into the database
+	// Prepare is a lifecycle hook that will get called before the model is
+	// inserted into or updated in the database.
 	Prepare() error
+	// GenerateID is a lifecycle hook that will be called before the Model is
+	// saved to the database - only if the Model does not already have an ID
 	GenerateID() error
 }
 
@@ -30,12 +34,12 @@ func modelID(m Model) string {
 
 var client = &http.Client{}
 
-// DB is a very simple ORM
+// DB is a very simple DBAL for ElasticSearch
 type DB struct {
 	URL *url.URL
 }
 
-// NewDB eases creation by validating the URL
+// NewDB eases creation by validating the URL given to it
 func NewDB(u string) (*DB, error) {
 	url, err := url.Parse(u)
 	if err != nil {
@@ -90,6 +94,8 @@ func putRequest(path string, jsonbytes []byte) (*http.Response, error) {
 }
 
 // Migrate makes sure that the Elastic cluster is primed for data
+// pass it a struct and it will introspect it to find what fields
+// should be added to the Mapping for the index.
 func (db *DB) Migrate(m Model) error {
 	response, err := getRequest(createURL(db.URL, []string{m.Index()}))
 	if err != nil {
@@ -152,6 +158,9 @@ func (db *DB) Migrate(m Model) error {
 	return nil
 }
 
+// Save will take a Model and either insert it into the database
+// if it does not exist (calling Prepare() and GenerateID()) or
+// update the existing database record (only calling Prepare())
 func (db *DB) Save(m Model) error {
 	err := m.Prepare()
 	if err != nil {
@@ -201,6 +210,7 @@ func (db *DB) Save(m Model) error {
 	return nil
 }
 
+// Exists will check if the Model already exists in the database
 func (db *DB) Exists(m Model) (bool, error) {
 	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName(m), modelID(m), "_source"}))
 	if err != nil {
