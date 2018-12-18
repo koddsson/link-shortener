@@ -20,6 +20,14 @@ type Model interface {
 	GenerateID() error
 }
 
+func modelName(m Model) string {
+	return reflect.TypeOf(m).Elem().Name()
+}
+
+func modelID(m Model) string {
+	return reflect.ValueOf(m).Elem().FieldByName("ID").String()
+}
+
 var client = &http.Client{}
 
 // DB is a very simple ORM
@@ -55,7 +63,7 @@ func createURL(ur *url.URL, path []string) string {
 	u.User = ur.User
 	escapedPath := make([]string, len(path))
 	for i, s := range path {
-		escapedPath[i] = url.PathEscape(s)
+		escapedPath[i] = strings.ToLower(url.PathEscape(s))
 	}
 	u.Path = "/" + strings.Join(escapedPath, "/")
 
@@ -98,7 +106,6 @@ func (db *DB) Migrate(m Model) error {
 	}
 
 	val := reflect.ValueOf(m).Elem()
-	modelName := reflect.TypeOf(m).Elem().Name()
 	mappings := map[string]interface{}{
 		"properties": map[string]interface{}{},
 	}
@@ -134,7 +141,7 @@ func (db *DB) Migrate(m Model) error {
 		return err
 	}
 
-	response, err = putRequest(createURL(db.URL, []string{m.Index(), "_mappings", strings.ToLower(modelName)}), jsonBytes)
+	response, err = putRequest(createURL(db.URL, []string{m.Index(), "_mappings", modelName(m)}), jsonBytes)
 	if err != nil {
 		return err
 	}
@@ -151,11 +158,7 @@ func (db *DB) Save(m Model) error {
 		return err
 	}
 
-	modelType := reflect.TypeOf(m)
-	modelName := strings.ToLower(modelType.Elem().Name())
-	ID := reflect.ValueOf(m).Elem().FieldByName("ID").String()
-
-	if ID == "" {
+	if modelID(m) == "" {
 		// Generate and ID that does not exist in the database
 		for true {
 			err := m.GenerateID()
@@ -182,9 +185,7 @@ func (db *DB) Save(m Model) error {
 		return err
 	}
 
-	ID = reflect.ValueOf(m).Elem().FieldByName("ID").String()
-
-	response, err := putRequest(createURL(db.URL, []string{m.Index(), modelName, ID}), jsonbytes)
+	response, err := putRequest(createURL(db.URL, []string{m.Index(), modelName(m), modelID(m)}), jsonbytes)
 	if err != nil {
 		return err
 	}
@@ -201,11 +202,7 @@ func (db *DB) Save(m Model) error {
 }
 
 func (db *DB) Exists(m Model) (bool, error) {
-	modelType := reflect.TypeOf(m)
-	modelName := strings.ToLower(modelType.Elem().Name())
-	ID := reflect.ValueOf(m).Elem().FieldByName("ID").String()
-
-	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName, ID, "_source"}))
+	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName(m), modelID(m), "_source"}))
 	if err != nil {
 		return false, err
 	}
@@ -218,17 +215,13 @@ func (db *DB) Exists(m Model) (bool, error) {
 }
 
 func (db *DB) Get(m Model) error {
-	modelType := reflect.TypeOf(m)
-	modelName := strings.ToLower(modelType.Elem().Name())
-	ID := reflect.ValueOf(m).Elem().FieldByName("ID").String()
-
-	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName, ID, "_source"}))
+	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName(m), modelID(m), "_source"}))
 	if err != nil {
 		return err
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return errors.New(modelName + " not found in database")
+		return errors.New(modelName(m) + " not found in database")
 	}
 
 	jsonResponse(response, &m)
