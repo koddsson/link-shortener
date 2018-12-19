@@ -4,29 +4,42 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
-	"time"
 )
 
+// Model is a interface that all models must implement
 type Model interface {
+	// Index is used to determine the name for the Model's Index
 	Index() string
+	// Prepare is a lifecycle hook that will get called before the model is
+	// inserted into or updated in the database.
+	Prepare() error
+	// GenerateID is a lifecycle hook that will be called before the Model is
+	// saved to the database - only if the Model does not already have an ID
+	GenerateID() error
+}
+
+func modelName(m Model) string {
+	return reflect.TypeOf(m).Elem().Name()
+}
+
+func modelID(m Model) string {
+	return reflect.ValueOf(m).Elem().FieldByName("ID").String()
 }
 
 var client = &http.Client{}
 
-// DB is a very simple ORM
+// DB is a very simple DBAL for ElasticSearch
 type DB struct {
 	URL *url.URL
 }
 
-// NewDB eases creation by validating the URL
+// NewDB eases creation by validating the URL given to it
 func NewDB(u string) (*DB, error) {
 	url, err := url.Parse(u)
 	if err != nil {
@@ -47,21 +60,22 @@ func jsonResponse(r *http.Response, v interface{}) {
 	json.NewDecoder(r.Body).Decode(v)
 }
 
-func (db *DB) createURL(path string) string {
+func createURL(ur *url.URL, path []string) string {
 	u := new(url.URL)
-	u.Scheme = db.URL.Scheme
-	u.Host = db.URL.Host
-	u.User = db.URL.User
-	if path[0] != '/' {
-		path = "/" + path
+	u.Scheme = ur.Scheme
+	u.Host = ur.Host
+	u.User = ur.User
+	escapedPath := make([]string, len(path))
+	for i, s := range path {
+		escapedPath[i] = strings.ToLower(url.PathEscape(s))
 	}
-	u.Path = path
+	u.Path = "/" + strings.Join(escapedPath, "/")
+
 	return u.String()
 }
 
-// Get makes a "GET" request to Elastic
-func (db *DB) Get(path string) (*http.Response, error) {
-	request, err := http.NewRequest("GET", db.createURL(path), nil)
+func getRequest(path string) (*http.Response, error) {
+	request, err := http.NewRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -69,9 +83,8 @@ func (db *DB) Get(path string) (*http.Response, error) {
 	return client.Do(request)
 }
 
-// Put makes a "PUT" request to Elastic
-func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
-	request, err := http.NewRequest("PUT", db.createURL(path), bytes.NewBuffer(jsonbytes))
+func putRequest(path string, jsonbytes []byte) (*http.Response, error) {
+	request, err := http.NewRequest("PUT", path, bytes.NewBuffer(jsonbytes))
 	if err != nil {
 		return nil, err
 	}
@@ -81,13 +94,15 @@ func (db *DB) Put(path string, jsonbytes []byte) (*http.Response, error) {
 }
 
 // Migrate makes sure that the Elastic cluster is primed for data
+// pass it a struct and it will introspect it to find what fields
+// should be added to the Mapping for the index.
 func (db *DB) Migrate(m Model) error {
-	response, err := db.Get(m.Index())
+	response, err := getRequest(createURL(db.URL, []string{m.Index()}))
 	if err != nil {
 		return err
 	}
 	if response.StatusCode != http.StatusOK {
-		response, err := db.Put(m.Index(), []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
+		response, err := putRequest(createURL(db.URL, []string{m.Index()}), []byte(`{"settings": {"index": {"number_of_shards": 1}}}`))
 		if err != nil {
 			return err
 		}
@@ -97,7 +112,6 @@ func (db *DB) Migrate(m Model) error {
 	}
 
 	val := reflect.ValueOf(m).Elem()
-	modelName := reflect.TypeOf(m).Elem().Name()
 	mappings := map[string]interface{}{
 		"properties": map[string]interface{}{},
 	}
@@ -133,7 +147,7 @@ func (db *DB) Migrate(m Model) error {
 		return err
 	}
 
-	response, err = db.Put(m.Index()+"/_mappings/"+strings.ToLower(modelName), jsonBytes)
+	response, err = putRequest(createURL(db.URL, []string{m.Index(), "_mappings", modelName(m)}), jsonBytes)
 	if err != nil {
 		return err
 	}
@@ -144,35 +158,45 @@ func (db *DB) Migrate(m Model) error {
 	return nil
 }
 
-func (db *DB) AddLink(link *Link) (*Link, error) {
-	link.Timestamp = time.Now()
+// Save will take a Model and either insert it into the database
+// if it does not exist (calling Prepare() and GenerateID()) or
+// update the existing database record (only calling Prepare())
+func (db *DB) Save(m Model) error {
+	err := m.Prepare()
+	if err != nil {
+		return err
+	}
 
-	if link.ID == "" {
-		s := rand.New(rand.NewSource(link.Timestamp.UnixNano()))
+	if modelID(m) == "" {
 		// Generate and ID that does not exist in the database
 		for true {
-			// Add a new randomly generated alpha character to the id
-			link.ID = link.ID + fmt.Sprintf("%s", string(byte(97+s.Intn(25))))
+			err := m.GenerateID()
+			if err != nil {
+				return err
+			}
 
 			// Check if the newly generate ID exists in DB
-			foundLink, _ := db.GetLink(link.ID)
+			exists, err := db.Exists(m)
+			if err != nil {
+				return err
+			}
 
 			// If the ID is not found in the DB we can break
 			// the loop because we have a unique ID
-			if foundLink == nil {
+			if !exists {
 				break
 			}
 		}
 	}
 
-	jsonbytes, err := json.Marshal(link)
+	jsonbytes, err := json.Marshal(m)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	response, err := db.Put("/links/link/"+url.PathEscape(link.ID), jsonbytes)
+	response, err := putRequest(createURL(db.URL, []string{m.Index(), modelName(m), modelID(m)}), jsonbytes)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var dbResponse map[string]string
@@ -180,26 +204,37 @@ func (db *DB) AddLink(link *Link) (*Link, error) {
 	result := dbResponse["result"]
 
 	if result != "created" && result != "updated" && result != "noop" {
-		return nil, errors.New("Could not insert record got " + dbResponse["result"])
+		return errors.New("Could not insert record got " + dbResponse["result"])
 	}
 
-	return link, nil
+	return nil
 }
 
-func (db *DB) GetLink(ID string) (*Link, error) {
-	var link Link
-	response, err := db.Get("/links/link/" + url.PathEscape(ID) + "/_source")
+// Exists will check if the Model already exists in the database
+func (db *DB) Exists(m Model) (bool, error) {
+	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName(m), modelID(m), "_source"}))
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New("Link not found in database")
+		return false, nil
 	}
 
-	jsonResponse(response, &link)
+	return true, nil
+}
 
-	link.ID = ID
+func (db *DB) Get(m Model) error {
+	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName(m), modelID(m), "_source"}))
+	if err != nil {
+		return err
+	}
 
-	return &link, nil
+	if response.StatusCode != http.StatusOK {
+		return errors.New(modelName(m) + " not found in database")
+	}
+
+	jsonResponse(response, &m)
+
+	return nil
 }

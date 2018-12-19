@@ -54,7 +54,7 @@ func InsertLinkIntoDB(link *Link) error {
 	if err != nil {
 		return err
 	}
-	link, err = db.AddLink(link)
+	err = db.Save(link)
 	if err != nil {
 		return err
 	}
