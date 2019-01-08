@@ -45,6 +45,7 @@ func MockHTTP(t *testing.T) (*recorder.Recorder, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	client.Transport = r
 	return r, nil
 }
@@ -89,7 +90,7 @@ func TestLinkGetFound(t *testing.T) {
 	server := httptest.NewServer(r)
 	defer server.Close()
 
-	link := Link{ID: "abc", URL: "https://example.com"}
+	link := Link{ID: "abc", URL: "https://example.com", HitCount: 0, HitLimit: 0}
 	err = InsertLinkIntoDB(&link)
 	require.NoError(err)
 
@@ -114,7 +115,7 @@ func TestLinkGetFoundHTML(t *testing.T) {
 	require.NoError(err)
 	defer rec.Stop()
 
-	link := Link{ID: "abc", URL: "https://example.com"}
+	link := Link{ID: "abc", URL: "https://example.com", HitCount: 0, HitLimit: 0}
 	err = InsertLinkIntoDB(&link)
 	require.NoError(err)
 
@@ -145,7 +146,7 @@ func TestLinkGetFoundJSON(t *testing.T) {
 	require.NoError(err)
 	defer rec.Stop()
 
-	link := Link{ID: "abc", URL: "https://example.com"}
+	link := Link{ID: "abc", URL: "https://example.com", HitCount: 0, HitLimit: 0}
 	err = InsertLinkIntoDB(&link)
 	require.NoError(err)
 
@@ -289,4 +290,61 @@ func TestLinkPostFormDataURLAndIDNotProvided(t *testing.T) {
 	resp, err := http.PostForm(server.URL, url.Values{})
 	require.NoError(err)
 	require.Equal(400, resp.StatusCode)
+}
+
+func TestLinkHitLimit(t *testing.T) {
+	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
+	link := Link{ID: "abc", URL: "https://example.com", HitLimit: 2, HitCount: 2}
+	err = InsertLinkIntoDB(&link)
+	require.NoError(err)
+
+	r, err := CreateServer(GetDatabaseURL())
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	req, err := http.NewRequest("GET", server.URL+"/abc", nil)
+	require.NoError(err)
+	req.Header.Set("Accept", "application/json")
+	resp, err := testClient.Do(req)
+	require.NoError(err)
+	require.Equal(404, resp.StatusCode)
+
+	// TODO: Test that `hit_count` and `hit_limit`
+}
+
+func TestLinkHitLimitManual(t *testing.T) {
+	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	json := []byte(`{"url": "https://example.com", "limit": 1}`)
+	resp, err := http.Post(server.URL+"/abc", "application/json", bytes.NewBuffer(json))
+	require.NoError(err)
+	require.Equal(201, resp.StatusCode)
+
+	req, err := http.NewRequest("GET", server.URL+"/abc", nil)
+	require.NoError(err)
+	req.Header.Set("Accept", "application/json")
+	resp, err = testClient.Do(req)
+	require.NoError(err)
+	require.Equal(200, resp.StatusCode)
+
+	req, err = http.NewRequest("GET", server.URL+"/abc", nil)
+	require.NoError(err)
+	req.Header.Set("Accept", "application/json")
+	resp, err = testClient.Do(req)
+	require.NoError(err)
+	require.Equal(404, resp.StatusCode)
 }

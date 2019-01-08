@@ -189,7 +189,23 @@ func (db *DB) Save(m Model) error {
 		}
 	}
 
-	jsonbytes, err := json.Marshal(m)
+	val := reflect.ValueOf(m).Elem()
+	record := map[string]interface{}{}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Type().Field(i)
+		tags := strings.Split(field.Tag.Get("db"), ";")
+		name, _ := tags[0], tags[1:]
+
+		if name == "" {
+			name = field.Name
+		}
+
+		record[name] = val.Field(i).Interface()
+	}
+
+	jsonbytes, err := json.Marshal(record)
+
 	if err != nil {
 		return err
 	}
@@ -213,6 +229,7 @@ func (db *DB) Save(m Model) error {
 // Exists will check if the Model already exists in the database
 func (db *DB) Exists(m Model) (bool, error) {
 	response, err := getRequest(createURL(db.URL, []string{m.Index(), modelName(m), modelID(m), "_source"}))
+
 	if err != nil {
 		return false, err
 	}
@@ -234,7 +251,53 @@ func (db *DB) Get(m Model) error {
 		return errors.New(modelName(m) + " not found in database")
 	}
 
-	jsonResponse(response, &m)
+	record := map[string]interface{}{}
+	jsonResponse(response, &record)
+
+	modelElem := reflect.ValueOf(m).Elem()
+
+	for i := 0; i < modelElem.NumField(); i++ {
+		field := modelElem.Type().Field(i)
+		tags := strings.Split(field.Tag.Get("db"), ";")
+		name, _ := tags[0], tags[1:]
+
+		if name == "" {
+			name = field.Name
+		}
+
+		if recordVal, ok := record[name]; ok {
+			if recordVal == nil {
+				continue
+			}
+			switch modelElem.Field(i).Interface().(type) {
+			case bool:
+				modelElem.Field(i).SetBool(recordVal.(bool))
+			case []byte:
+				modelElem.Field(i).SetBytes(recordVal.([]byte))
+			case complex128:
+				modelElem.Field(i).SetComplex(recordVal.(complex128))
+			case float64:
+				modelElem.Field(i).SetFloat(recordVal.(float64))
+			case int64:
+				switch recordVal.(type) {
+				case int64:
+					break
+				case float64:
+					recordVal = int64(recordVal.(float64))
+				}
+				modelElem.Field(i).SetInt(recordVal.(int64))
+			case string:
+				modelElem.Field(i).SetString(recordVal.(string))
+			case uint64:
+				modelElem.Field(i).SetUint(recordVal.(uint64))
+			}
+		}
+
+		if record[name] == nil {
+			continue
+		}
+
+	}
 
 	return nil
 }

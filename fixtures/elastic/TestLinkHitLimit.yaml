@@ -2,6 +2,24 @@
 version: 1
 interactions:
 - request:
+    body: '{"@timestamp":"2019-01-14T11:12:52.674783Z","ID":"abc","hit_count":2,"hit_limit":2,"url":"https://example.com"}'
+    form: {}
+    headers:
+      Accept:
+      - application/json
+      Content-Type:
+      - application/json
+    url: http://localhost:9201/links/link/abc
+    method: PUT
+  response:
+    body: '{"_index":"links","_type":"link","_id":"abc","_version":57,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":105,"_primary_term":1}'
+    headers:
+      Content-Type:
+      - application/json; charset=UTF-8
+    status: 200 OK
+    code: 200
+    duration: ""
+- request:
     body: ""
     form: {}
     headers:
@@ -41,15 +59,13 @@ interactions:
     headers:
       Accept:
       - application/json
-    url: http://localhost:9201/links/link/doesntexist/_source
+    url: http://localhost:9201/links/link/abc/_source
     method: GET
   response:
-    body: ""
+    body: '{"@timestamp":"2019-01-14T11:12:52.674783Z","ID":"abc","hit_count":2,"hit_limit":2,"url":"https://example.com"}'
     headers:
-      Content-Length:
-      - "0"
       Content-Type:
       - application/json; charset=UTF-8
-    status: 404 Not Found
-    code: 404
+    status: 200 OK
+    code: 200
     duration: ""

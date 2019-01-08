@@ -127,10 +127,19 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		ID := chi.URLParam(r, "id")
 		link := &Link{ID: ID}
 		err := db.Get(link)
+
+		if !link.CanRead() {
+			err = errors.New("Link not found in database")
+		}
+
 		if err != nil {
 			render.Render(w, r, ErrNotFound(err))
 			return
 		}
+
+		link.HitCount++
+		db.Save(link)
+
 		// Only render with 302 status for non-JSON responses
 		if render.GetAcceptedContentType(r) != render.ContentTypeJSON {
 			render.Status(r, http.StatusFound)

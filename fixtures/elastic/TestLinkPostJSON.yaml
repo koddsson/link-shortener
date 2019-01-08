@@ -10,7 +10,7 @@ interactions:
     url: http://localhost:9201/links
     method: GET
   response:
-    body: '{"links":{"aliases":{},"mappings":{"link":{"properties":{"@timestamp":{"type":"date"},"id":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"url":{"type":"text","analyzer":"standard"}}}},"settings":{"index":{"creation_date":"1544439711268","number_of_shards":"1","number_of_replicas":"1","uuid":"MomxLhyfRN2XwTMbQtm5kg","version":{"created":"6040299"},"provided_name":"links"}}}}'
+    body: '{"links":{"aliases":{},"mappings":{"link":{"properties":{"@timestamp":{"type":"date"},"ID":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"hit_count":{"type":"long"},"hit_limit":{"type":"long"},"id":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"url":{"type":"text","analyzer":"standard"}}}},"settings":{"index":{"creation_date":"1547461844130","number_of_shards":"1","number_of_replicas":"1","uuid":"zcUHmJDvR5us_mipPMIa_Q","version":{"created":"6040299"},"provided_name":"links"}}}}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8
@@ -18,8 +18,7 @@ interactions:
     code: 200
     duration: ""
 - request:
-    body: '{"properties": {"@timestamp": {"type": "date"}, "url": {"type": "text",
-      "analyzer": "standard"}}}'
+    body: '{"properties":{"@timestamp":{"type":"date"},"hit_count":{"type":"long"},"hit_limit":{"type":"long"},"url":{"analyzer":"standard","type":"text"}}}'
     form: {}
     headers:
       Accept:
@@ -37,7 +36,7 @@ interactions:
     code: 200
     duration: ""
 - request:
-    body: '{"id":"new-link","url":"https://example.com"}'
+    body: '{"@timestamp":"2019-01-14T11:12:52.543074Z","ID":"new-link","hit_count":0,"hit_limit":0,"url":"https://example.com"}'
     form: {}
     headers:
       Accept:
@@ -47,12 +46,10 @@ interactions:
     url: http://localhost:9201/links/link/new-link
     method: PUT
   response:
-    body: '{"_index":"links","_type":"link","_id":"new-link","_version":1,"result":"created","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":1,"_primary_term":1}'
+    body: '{"_index":"links","_type":"link","_id":"new-link","_version":31,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":103,"_primary_term":1}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8
-      Location:
-      - /links/link/new-link
-    status: 201 Created
-    code: 201
+    status: 200 OK
+    code: 200
     duration: ""
