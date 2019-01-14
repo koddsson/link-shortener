@@ -313,8 +313,6 @@ func TestLinkHitLimit(t *testing.T) {
 	resp, err := testClient.Do(req)
 	require.NoError(err)
 	require.Equal(404, resp.StatusCode)
-
-	// TODO: Test that `hit_count` and `hit_limit`
 }
 
 func TestLinkHitLimitManual(t *testing.T) {
@@ -342,6 +340,56 @@ func TestLinkHitLimitManual(t *testing.T) {
 	require.Equal(200, resp.StatusCode)
 
 	req, err = http.NewRequest("GET", server.URL+"/abc", nil)
+	require.NoError(err)
+	req.Header.Set("Accept", "application/json")
+	resp, err = testClient.Do(req)
+	require.NoError(err)
+	require.Equal(404, resp.StatusCode)
+}
+
+func TestLinkExpires(t *testing.T) {
+	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	date := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	link := Link{ID: "abc", URL: "https://example.com", HitLimit: 0, HitCount: 2, Expires: date}
+	err = InsertLinkIntoDB(&link)
+	require.NoError(err)
+
+	req, err := http.NewRequest("GET", server.URL+"/abc", nil)
+	require.NoError(err)
+	req.Header.Set("Accept", "application/json")
+	resp, err := testClient.Do(req)
+	require.NoError(err)
+	require.Equal(404, resp.StatusCode)
+}
+
+func TestLinkExpiresManual(t *testing.T) {
+	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	json := []byte(`{"url": "https://example.com", "expires": "2009-11-10T23:00:00.000Z"}`)
+	resp, err := http.Post(server.URL+"/abc", "application/json", bytes.NewBuffer(json))
+	require.NoError(err)
+	require.Equal(201, resp.StatusCode)
+
+	req, err := http.NewRequest("GET", server.URL+"/abc", nil)
 	require.NoError(err)
 	req.Header.Set("Accept", "application/json")
 	resp, err = testClient.Do(req)

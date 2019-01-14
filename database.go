@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // Model is a interface that all models must implement
@@ -290,6 +291,17 @@ func (db *DB) Get(m Model) error {
 				modelElem.Field(i).SetString(recordVal.(string))
 			case uint64:
 				modelElem.Field(i).SetUint(recordVal.(uint64))
+			case time.Time:
+				switch recordVal.(type) {
+				case time.Time:
+					break
+				case string:
+					recordVal, err = time.Parse(time.RFC3339, recordVal.(string))
+					if err != nil {
+						return err
+					}
+				}
+				modelElem.Field(i).Set(reflect.ValueOf(recordVal.(time.Time)))
 			}
 		}
 

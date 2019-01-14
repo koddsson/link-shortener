@@ -14,8 +14,9 @@ type Link struct {
 	ID  string `json:"id" form:"id"`
 	URL string `json:"url" form:"url,omitempty" db:"url;type:text;analyzer:standard"`
 
-	HitCount int64 `json:"-" form:"-" db:"hit_count;type:long"`
-	HitLimit int64 `json:"limit,omitempty" form:"limit,omitempty" db:"hit_limit;type:long"`
+	HitCount int64     `json:"-" form:"-" db:"hit_count;type:long"`
+	HitLimit int64     `json:"limit,omitempty" form:"limit,omitempty" db:"hit_limit;type:long"`
+	Expires  time.Time `json:"expires,omitempty" form:"expires,omitempty" db:"expires;type:date"`
 
 	// TODO: Rename this? This is the created time.
 	Timestamp time.Time `json:"@timestamp" form:"@timestamp" db:"@timestamp;type:date"`
@@ -72,11 +73,15 @@ func (link *Link) Prepare() error {
 
 // CanRead tells you if you can read this object
 func (link *Link) CanRead() bool {
-	if link.HitLimit == 0 {
+	if link.HitLimit == 0 && link.Expires.IsZero() {
 		return true
 	}
 
-	if link.HitCount >= link.HitLimit {
+	if link.HitLimit > 0 && link.HitCount >= link.HitLimit {
+		return false
+	}
+
+	if !link.Expires.IsZero() && link.Expires.Before(time.Now()) {
 		return false
 	}
 
