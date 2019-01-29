@@ -8,6 +8,6 @@ require (
 	github.com/go-chi/chi v3.3.3+incompatible
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.2.2
-	github.com/syntaqx/render v1.0.1-0.20180630153157-af1759ac836f
+	github.com/syntaqx/go-chi-render v1.0.1-0.20180630153157-af1759ac836f
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

@@ -9,7 +9,7 @@ import (
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-chi/chi"
-	"github.com/syntaqx/render"
+	"github.com/syntaqx/go-chi-render"
 )
 
 var db *DB
