@@ -21,6 +21,7 @@ services:
     restart: always
     environment:
       - "discovery.type=single-node"
+      - "network.host=0.0.0.0"
     volumes:
       - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - ./elastic_data:/var/lib/elasticsearch
