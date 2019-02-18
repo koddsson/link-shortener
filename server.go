@@ -14,7 +14,7 @@ import (
 
 var db *DB
 var indexHTML *mustache.Template
-var viewLinkHtml *mustache.Template
+var viewLinkHTML *mustache.Template
 
 type TemplateContextKey string
 
@@ -154,13 +154,13 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			render.Status(r, http.StatusFound)
 			w.Header().Set("Location", link.URL)
 		}
-		if viewLinkHtml == nil {
-			viewLinkHtml, err = mustache.ParseFile("./link.view.mustache.html")
+		if viewLinkHTML == nil {
+			viewLinkHTML, err = mustache.ParseFile("./link.view.mustache.html")
 			if err != nil {
 				panic(err)
 			}
 		}
-		render.Render(w, WithTemplate(r, viewLinkHtml), link)
+		render.Render(w, WithTemplate(r, viewLinkHTML), link)
 	})
 	return r, nil
 }
