@@ -10,7 +10,7 @@ interactions:
     url: http://localhost:9201/links
     method: GET
   response:
-    body: '{"links":{"aliases":{},"mappings":{"link":{"properties":{"@timestamp":{"type":"date"},"ID":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"expires":{"type":"date"},"hit_count":{"type":"long"},"hit_limit":{"type":"long"},"id":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"url":{"type":"text","analyzer":"standard"}}}},"settings":{"index":{"creation_date":"1547461844130","number_of_shards":"1","number_of_replicas":"1","uuid":"zcUHmJDvR5us_mipPMIa_Q","version":{"created":"6040299"},"provided_name":"links"}}}}'
+    body: '{"links":{"aliases":{},"mappings":{"link":{"properties":{"@timestamp":{"type":"date"},"ID":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"expires":{"type":"date"},"hit_count":{"type":"long"},"hit_limit":{"type":"long"},"url":{"type":"text","analyzer":"standard"}}}},"settings":{"index":{"creation_date":"1550487249013","number_of_shards":"1","number_of_replicas":"1","uuid":"5jgydYkHQka-fg-Sw-aMKA","version":{"created":"6040299"},"provided_name":"links"}}}}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8
@@ -36,7 +36,7 @@ interactions:
     code: 200
     duration: ""
 - request:
-    body: '{"@timestamp":"2019-01-14T11:30:22.614779Z","ID":"abc","expires":"2009-11-10T23:00:00Z","hit_count":2,"hit_limit":0,"url":"https://example.com"}'
+    body: '{"@timestamp":"2019-02-18T11:13:42.642549Z","ID":"abc","expires":"2009-11-10T23:00:00Z","hit_count":2,"hit_limit":0,"url":"https://example.com"}'
     form: {}
     headers:
       Accept:
@@ -46,7 +46,7 @@ interactions:
     url: http://localhost:9201/links/link/abc
     method: PUT
   response:
-    body: '{"_index":"links","_type":"link","_id":"abc","_version":97,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":151,"_primary_term":1}'
+    body: '{"_index":"links","_type":"link","_id":"abc","_version":30,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":38,"_primary_term":1}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8
@@ -62,25 +62,7 @@ interactions:
     url: http://localhost:9201/links/link/abc/_source
     method: GET
   response:
-    body: '{"@timestamp":"2019-01-14T11:30:22.614779Z","ID":"abc","expires":"2009-11-10T23:00:00Z","hit_count":2,"hit_limit":0,"url":"https://example.com"}'
-    headers:
-      Content-Type:
-      - application/json; charset=UTF-8
-    status: 200 OK
-    code: 200
-    duration: ""
-- request:
-    body: '{"@timestamp":"2019-01-14T11:30:22.664878Z","ID":"abc","expires":"0001-01-01T00:00:00Z","hit_count":3,"hit_limit":0,"url":"https://example.com"}'
-    form: {}
-    headers:
-      Accept:
-      - application/json
-      Content-Type:
-      - application/json
-    url: http://localhost:9201/links/link/abc
-    method: PUT
-  response:
-    body: '{"_index":"links","_type":"link","_id":"abc","_version":98,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":152,"_primary_term":1}'
+    body: '{"@timestamp":"2019-02-18T11:13:42.642549Z","ID":"abc","expires":"2009-11-10T23:00:00Z","hit_count":2,"hit_limit":0,"url":"https://example.com"}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8
