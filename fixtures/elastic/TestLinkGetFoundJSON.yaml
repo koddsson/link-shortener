@@ -2,7 +2,7 @@
 version: 1
 interactions:
 - request:
-    body: '{"@timestamp":"2019-02-18T11:13:42.217192Z","ID":"abc","expires":"0001-01-01T00:00:00Z","hit_count":0,"hit_limit":0,"url":"https://example.com"}'
+    body: '{"@timestamp":"2019-02-18T11:33:53.765203Z","ID":"abc","expires":"0001-01-01T00:00:00Z","hit_count":0,"hit_limit":0,"url":"https://example.com"}'
     form: {}
     headers:
       Accept:
@@ -12,7 +12,7 @@ interactions:
     url: http://localhost:9201/links/link/abc
     method: PUT
   response:
-    body: '{"_index":"links","_type":"link","_id":"abc","_version":25,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":31,"_primary_term":1}'
+    body: '{"_index":"links","_type":"link","_id":"abc","_version":47,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":62,"_primary_term":1}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8
@@ -62,7 +62,7 @@ interactions:
     url: http://localhost:9201/links/link/abc/_source
     method: GET
   response:
-    body: '{"@timestamp":"2019-02-18T11:13:42.217192Z","ID":"abc","expires":"0001-01-01T00:00:00Z","hit_count":0,"hit_limit":0,"url":"https://example.com"}'
+    body: '{"@timestamp":"2019-02-18T11:33:53.765203Z","ID":"abc","expires":"0001-01-01T00:00:00Z","hit_count":0,"hit_limit":0,"url":"https://example.com"}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8
@@ -70,7 +70,7 @@ interactions:
     code: 200
     duration: ""
 - request:
-    body: '{"@timestamp":"2019-02-18T11:13:42.217192Z","ID":"abc","expires":"0001-01-01T00:00:00Z","hit_count":1,"hit_limit":0,"url":"https://example.com"}'
+    body: '{"@timestamp":"2019-02-18T11:33:53.765203Z","ID":"abc","expires":"0001-01-01T00:00:00Z","hit_count":1,"hit_limit":0,"url":"https://example.com"}'
     form: {}
     headers:
       Accept:
@@ -80,7 +80,7 @@ interactions:
     url: http://localhost:9201/links/link/abc
     method: PUT
   response:
-    body: '{"_index":"links","_type":"link","_id":"abc","_version":26,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":32,"_primary_term":1}'
+    body: '{"_index":"links","_type":"link","_id":"abc","_version":48,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":63,"_primary_term":1}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8

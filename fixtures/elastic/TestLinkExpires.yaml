@@ -36,7 +36,7 @@ interactions:
     code: 200
     duration: ""
 - request:
-    body: '{"@timestamp":"2019-02-18T11:13:42.642549Z","ID":"abc","expires":"2009-11-10T23:00:00Z","hit_count":2,"hit_limit":0,"url":"https://example.com"}'
+    body: '{"@timestamp":"2019-02-18T11:33:54.053793Z","ID":"abc","expires":"2009-11-10T23:00:00Z","hit_count":2,"hit_limit":0,"url":"https://example.com"}'
     form: {}
     headers:
       Accept:
@@ -46,7 +46,7 @@ interactions:
     url: http://localhost:9201/links/link/abc
     method: PUT
   response:
-    body: '{"_index":"links","_type":"link","_id":"abc","_version":30,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":38,"_primary_term":1}'
+    body: '{"_index":"links","_type":"link","_id":"abc","_version":52,"result":"updated","_shards":{"total":2,"successful":1,"failed":0},"_seq_no":69,"_primary_term":1}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8
@@ -62,7 +62,7 @@ interactions:
     url: http://localhost:9201/links/link/abc/_source
     method: GET
   response:
-    body: '{"@timestamp":"2019-02-18T11:13:42.642549Z","ID":"abc","expires":"2009-11-10T23:00:00Z","hit_count":2,"hit_limit":0,"url":"https://example.com"}'
+    body: '{"@timestamp":"2019-02-18T11:33:54.053793Z","ID":"abc","expires":"2009-11-10T23:00:00Z","hit_count":2,"hit_limit":0,"url":"https://example.com"}'
     headers:
       Content-Type:
       - application/json; charset=UTF-8
