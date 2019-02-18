@@ -81,6 +81,15 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		if indexHTML == nil {
+			// TODO: We need to move the parsing of markdown templates somewhere so that
+			// the tests can pick them up and we can assert on them - perhaps we should also
+			// provide a way for the tests to mock these.
+			indexHTML, err = mustache.ParseFile("./index.mustache.html")
+			if err != nil {
+				panic(err)
+			}
+		}
 		render.Render(w, WithTemplate(r, indexHTML), &Link{})
 	})
 
@@ -145,6 +154,12 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			render.Status(r, http.StatusFound)
 			w.Header().Set("Location", link.URL)
 		}
+		if viewLinkHtml == nil {
+			viewLinkHtml, err = mustache.ParseFile("./link.view.mustache.html")
+			if err != nil {
+				panic(err)
+			}
+		}
 		render.Render(w, WithTemplate(r, viewLinkHtml), link)
 	})
 	return r, nil
@@ -180,16 +195,5 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Up and running on port 3000!")
-	// TODO: We need to move the parsing of markdown templates somewhere so that
-	// the tests can pick them up and we can assert on them - perhaps we should also
-	// provide a way for the tests to mock these.
-	indexHTML, err = mustache.ParseFile("./index.mustache.html")
-	if err != nil {
-		panic(err)
-	}
-	viewLinkHtml, err = mustache.ParseFile("./link.view.mustache.html")
-	if err != nil {
-		panic(err)
-	}
 	http.ListenAndServe(":3000", r)
 }
