@@ -4,23 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 
-	"github.com/cbroglie/mustache"
 	"github.com/go-chi/chi"
 	"github.com/syntaqx/go-chi-render"
 )
 
 var db *DB
-var indexHTML *mustache.Template
-var viewLinkHtml *mustache.Template
+var indexHTML *template.Template
+var viewLinkHTML *template.Template
 
 type TemplateContextKey string
 
 const TemplateKey TemplateContextKey = "template"
 
-func WithTemplate(r *http.Request, t *mustache.Template) *http.Request {
+func WithTemplate(r *http.Request, t *template.Template) *http.Request {
 	c := r.Context()
 	return r.WithContext(context.WithValue(c, TemplateKey, t))
 }
@@ -81,6 +81,15 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		if indexHTML == nil {
+			// TODO: We need to move the parsing of markdown templates somewhere so that
+			// the tests can pick them up and we can assert on them - perhaps we should also
+			// provide a way for the tests to mock these.
+			indexHTML, err = template.ParseFiles("./index.mustache.html")
+			if err != nil {
+				panic(err)
+			}
+		}
 		render.Render(w, WithTemplate(r, indexHTML), &Link{})
 	})
 
@@ -142,10 +151,17 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 
 		// Only render with 302 status for non-JSON responses
 		if render.GetAcceptedContentType(r) != render.ContentTypeJSON {
-			render.Status(r, http.StatusFound)
+			//render.Status(r, http.StatusFound)
 			w.Header().Set("Location", link.URL)
+			w.WriteHeader(http.StatusFound)
 		}
-		render.Render(w, WithTemplate(r, viewLinkHtml), link)
+		if viewLinkHTML == nil {
+			viewLinkHTML, err = template.ParseFiles("./link.view.mustache.html")
+			if err != nil {
+				panic(err)
+			}
+		}
+		render.Render(w, WithTemplate(r, viewLinkHTML), link)
 	})
 	return r, nil
 }
@@ -157,12 +173,10 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 		render.JSON(w, r, v)
 		return
 	case render.ContentTypeHTML:
-		if t, ok := r.Context().Value(TemplateKey).(*mustache.Template); ok && t != nil {
-			html, err := t.Render(v)
+		if t, ok := r.Context().Value(TemplateKey).(*template.Template); ok && t != nil {
+			err := t.Execute(w, v)
 			if err != nil {
 				render.Render(w, r, ErrInternalServer(err))
-			} else {
-				render.HTML(w, r, html)
 			}
 			return
 		}
@@ -180,16 +194,5 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Up and running on port 3000!")
-	// TODO: We need to move the parsing of markdown templates somewhere so that
-	// the tests can pick them up and we can assert on them - perhaps we should also
-	// provide a way for the tests to mock these.
-	indexHTML, err = mustache.ParseFile("./index.mustache.html")
-	if err != nil {
-		panic(err)
-	}
-	viewLinkHtml, err = mustache.ParseFile("./link.view.mustache.html")
-	if err != nil {
-		panic(err)
-	}
 	http.ListenAndServe(":3000", r)
 }
