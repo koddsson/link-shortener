@@ -108,7 +108,6 @@ func TestLinkGetFound(t *testing.T) {
 }
 
 func TestLinkGetFoundHTML(t *testing.T) {
-	t.Skip("TODO: templates are acquired in main() which breaks these tests")
 	require := require.New(t)
 
 	rec, err := MockHTTP(t)
@@ -136,7 +135,7 @@ func TestLinkGetFoundHTML(t *testing.T) {
 	require.NoError(err)
 	body := string(bodyBytes[:])
 
-	require.Equal("<a href=\"https://example.com\">Found</a>.\n\n", body)
+	require.Equal("<!DOCTYPE html>\n<a href=\"https://example.com\">abc</a>\n", body)
 }
 
 func TestLinkGetFoundJSON(t *testing.T) {
