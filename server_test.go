@@ -107,6 +107,31 @@ func TestLinkGetFound(t *testing.T) {
 	require.Equal("https://example.com", body)
 }
 
+func TestIndexHTML(t *testing.T) {
+	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
+	r, err := CreateServer(GetDatabaseURL())
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	req, err := http.NewRequest("GET", server.URL, nil)
+	require.NoError(err)
+	req.Header.Set("Accept", "text/html")
+	resp, err := testClient.Do(req)
+	require.NoError(err)
+
+	require.Equal(200, resp.StatusCode)
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	require.NoError(err)
+	body := string(bodyBytes[:])
+
+	require.Regexp("<!DOCTYPE html>", body)
+}
+
 func TestLinkGetFoundHTML(t *testing.T) {
 	require := require.New(t)
 
