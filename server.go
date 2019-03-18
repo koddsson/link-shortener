@@ -7,22 +7,23 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/syntaqx/go-chi-render"
 )
 
 var db *DB
-var indexHTML *template.Template
-var viewLinkHTML *template.Template
 
-type TemplateContextKey string
+type contextKey struct{ name string }
 
-const TemplateKey TemplateContextKey = "template"
+var templates map[string]*template.Template = make(map[string]*template.Template)
 
-func WithTemplate(r *http.Request, t *template.Template) *http.Request {
-	c := r.Context()
-	return r.WithContext(context.WithValue(c, TemplateKey, t))
+var templateKey = &contextKey{"template"}
+
+func WithTemplate(r *http.Request, t string) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), templateKey, t))
 }
 
 func ErrInvalidRequest(err error) render.Renderer {
@@ -81,16 +82,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		if indexHTML == nil {
-			// TODO: We need to move the parsing of markdown templates somewhere so that
-			// the tests can pick them up and we can assert on them - perhaps we should also
-			// provide a way for the tests to mock these.
-			indexHTML, err = template.ParseFiles("./index.mustache.html")
-			if err != nil {
-				panic(err)
-			}
-		}
-		render.Render(w, WithTemplate(r, indexHTML), &Link{})
+		render.Render(w, WithTemplate(r, "index"), &Link{})
 	})
 
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
@@ -155,13 +147,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			w.Header().Set("Location", link.URL)
 			w.WriteHeader(http.StatusFound)
 		}
-		if viewLinkHTML == nil {
-			viewLinkHTML, err = template.ParseFiles("./link.view.mustache.html")
-			if err != nil {
-				panic(err)
-			}
-		}
-		render.Render(w, WithTemplate(r, viewLinkHTML), link)
+		render.Render(w, WithTemplate(r, "link.view"), link)
 	})
 	return r, nil
 }
@@ -173,8 +159,13 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 		render.JSON(w, r, v)
 		return
 	case render.ContentTypeHTML:
-		if t, ok := r.Context().Value(TemplateKey).(*template.Template); ok && t != nil {
-			err := t.Execute(w, v)
+		if t, ok := r.Context().Value(templateKey).(string); ok {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			tpl := templates[t]
+			if tpl == nil {
+				render.Render(w, r, ErrInternalServer(errors.New("template "+t+" not found")))
+			}
+			err := tpl.ExecuteTemplate(w, "root", v)
 			if err != nil {
 				render.Render(w, r, ErrInternalServer(err))
 			}
@@ -182,6 +173,24 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 		}
 	}
 	render.PlainText(w, r, fmt.Sprint(v))
+}
+
+func init() {
+	files, err := filepath.Glob("*.html")
+	if err != nil {
+		panic(err)
+	}
+	for _, t := range files {
+		if t == "layout.html" {
+			continue
+		}
+		tpl, err := template.ParseFiles("layout.html", t)
+		if err != nil {
+			panic(err)
+		}
+		t = strings.TrimSuffix(filepath.Base(t), filepath.Ext(t))
+		templates[t] = tpl
+	}
 }
 
 func main() {
