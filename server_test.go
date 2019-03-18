@@ -190,7 +190,7 @@ func TestLinkPreviewGetFoundHTML(t *testing.T) {
 	require.NoError(err)
 	body := string(bodyBytes[:])
 
-	require.Equal("<!DOCTYPE html>\n<a href=\"https://example.com\">https://example.com</a>\n<a href=\"/abc\">/abc</a>\n", body)
+	require.Equal("<!DOCTYPE html>\n<p>\n  <a href=\"https://example.com\">https://example.com</a>\n</p>\n<p>\n  <a href=\"/abc\">/abc</a>\n</p>\n", body)
 }
 
 func TestLinkGetFoundJSON(t *testing.T) {
