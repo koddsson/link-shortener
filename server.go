@@ -149,6 +149,27 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		}
 		render.Render(w, WithTemplate(r, "link.view"), link)
 	})
+
+	r.Get("/{id}/preview", func(w http.ResponseWriter, r *http.Request) {
+		ID := chi.URLParam(r, "id")
+		link := &Link{ID: ID}
+		err := db.Get(link)
+
+		if !link.CanRead() {
+			err = errors.New("Link not found in database")
+		}
+
+		if err != nil {
+			render.Render(w, r, ErrNotFound(err))
+			return
+		}
+
+		link.HitCount++
+		db.Save(link)
+
+		render.Render(w, WithTemplate(r, "link.preview"), link)
+	})
+
 	return r, nil
 }
 
