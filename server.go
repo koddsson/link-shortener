@@ -5,16 +5,24 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/go-chi/chi"
+	"github.com/minio/minio-go"
 	"github.com/syntaqx/go-chi-render"
 )
 
 var db *DB
+var S3Client *minio.Client
+var S3SpaceName string
+var S3Endpoint string
 
 type contextKey struct{ name string }
 
@@ -78,6 +86,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 	}
 
 	render.Respond = Respond
+	render.Decode = Decode
 
 	r := chi.NewRouter()
 
@@ -92,6 +101,23 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		if err := render.Bind(r, link); err != nil {
 			render.Render(w, r, ErrInvalidRequest(err))
 			return
+		}
+
+		// https://github.com/minio/minio-go/blob/93e12e097cf3aec86c28ceeb7a960a29b2302a3a/api-put-object.go#L133
+		if link.Type == TYPE_FILE {
+			// We need to save the link object so that database will generate a ID
+			// that we can use to upload the file to S3 with.
+			err := db.Save(link)
+			if err != nil {
+				render.Render(w, r, ErrInternalServer(err))
+			}
+
+			_, err = S3Client.PutObject(S3SpaceName, link.ID, link.File, -1, minio.PutObjectOptions{})
+			if err != nil {
+				render.Render(w, r, ErrInternalServer(err))
+			}
+			link.URL = "https://" + S3SpaceName + "." + S3Endpoint + "/" + link.ID
+
 		}
 
 		err := db.Save(link)
@@ -141,12 +167,15 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		link.HitCount++
 		db.Save(link)
 
+		// TODO: If this is a file, "return" the file and don't render
+
 		// Only render with 302 status for non-JSON responses
 		if render.GetAcceptedContentType(r) != render.ContentTypeJSON {
 			//render.Status(r, http.StatusFound)
 			w.Header().Set("Location", link.URL)
 			w.WriteHeader(http.StatusFound)
 		}
+
 		render.Render(w, WithTemplate(r, "link.view"), link)
 	})
 
@@ -166,6 +195,8 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 
 		link.HitCount++
 		db.Save(link)
+
+		// TODO: If this is a file, "return" the ID and don't render
 
 		render.Render(w, WithTemplate(r, "link.preview"), link)
 	})
@@ -196,6 +227,59 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 	render.PlainText(w, r, fmt.Sprint(v))
 }
 
+func DecodeMultipart(r io.Reader, params map[string]string, v interface{}) error {
+	reader := multipart.NewReader(r, params["boundary"])
+
+	for {
+		p, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		name := p.FormName()
+		if name == "" {
+			return errors.New("Unknown multipart field")
+		}
+
+		// TODO: Strip EXIF data.
+		val := reflect.ValueOf(v).Elem()
+
+		for i := 0; i < val.NumField(); i++ {
+			field := val.Type().Field(i)
+			value := val.Field(i)
+
+			tags := strings.Split(field.Tag.Get("multipart"), ";")
+			if name == tags[0] {
+				value.Set(reflect.ValueOf(p))
+			}
+		}
+	}
+
+	return nil
+}
+
+func Decode(r *http.Request, v interface{}) error {
+	var err error
+
+	mediatype, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+
+	switch mediatype {
+	case "application/json":
+		err = render.DecodeJSON(r.Body, v)
+	case "application/x-www-form-urlencoded":
+		err = render.DecodeForm(r.Body, v)
+	case "multipart/form-data":
+		err = DecodeMultipart(r.Body, params, v)
+	default:
+		err = errors.New("render: unable to automatically decode the request content type")
+	}
+
+	return err
+}
+
 func init() {
 	files, err := filepath.Glob("*.html")
 	if err != nil {
@@ -215,7 +299,20 @@ func init() {
 }
 
 func main() {
+	var err error
+
 	ESUrl := os.Getenv("ES_URL")
+	S3AccessKey := os.Getenv("SPACES_KEY")
+	S3SecurityKey := os.Getenv("SPACES_SECRET")
+	S3SpaceName = os.Getenv("SPACES_NAME") // Space names must be globally unique<Paste>
+	S3Endpoint = os.Getenv("SPACES_ENDPOINT")
+
+	// TODO: Throw if S3 things aren't defined
+	S3Client, err = minio.New(S3Endpoint, S3AccessKey, S3SecurityKey, true)
+	if err != nil {
+		panic(err)
+	}
+
 	if ESUrl == "" {
 		panic(errors.New("ES_URL needs to be set"))
 	}

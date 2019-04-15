@@ -154,7 +154,8 @@ func (db *DB) Migrate(m Model) error {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return errors.New("Could not set mappings for index " + m.Index())
+		bodyBytes, _ := ioutil.ReadAll(response.Body)
+		return errors.New("Could not set mappings for index " + m.Index() + ". Response: " + string(bodyBytes))
 	}
 	return nil
 }
