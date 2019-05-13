@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -449,4 +450,56 @@ func TestLinkExpiresManual(t *testing.T) {
 	resp, err = testClient.Do(req)
 	require.NoError(err)
 	require.Equal(404, resp.StatusCode)
+}
+
+func TestFileUpload(t *testing.T) {
+	require := require.New(t)
+
+	rec, err := MockHTTP(t)
+	require.NoError(err)
+	defer rec.Stop()
+
+	r, err := CreateServer(GetDatabaseURL())
+	require.NoError(err)
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	payload := &bytes.Buffer{}
+	writer := multipart.NewWriter(payload)
+	part, err := writer.CreateFormFile("file", "filename")
+	require.NoError(err)
+
+	_, err = part.Write([]byte(`Hello World!`))
+	require.NoError(err)
+
+	err = writer.Close()
+	require.NoError(err)
+
+	resp, err := http.Post(server.URL+"/abc", writer.FormDataContentType(), payload)
+	require.Equal(201, resp.StatusCode)
+
+	req, err := http.NewRequest("GET", server.URL+"/abc", nil)
+	require.NoError(err)
+	req.Header.Set("Accept", "application/json")
+	resp, err = testClient.Do(req)
+	require.NoError(err)
+	require.Equal(200, resp.StatusCode)
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	require.NoError(err)
+	body := string(bodyBytes[:])
+
+	require.Equal("{}", body)
+
+	req, err = http.NewRequest("GET", server.URL+"/abc", nil)
+	require.NoError(err)
+	//req.Header.Set("Accept", "text/html")
+	resp, err = testClient.Do(req)
+	require.NoError(err)
+	require.Equal(200, resp.StatusCode)
+	require.Equal("text/plain", resp.Header.Get("Content-Type"))
+	bodyBytes, err = ioutil.ReadAll(resp.Body)
+	require.NoError(err)
+	body = string(bodyBytes[:])
+
+	require.Equal("Henlo World!", body)
 }
