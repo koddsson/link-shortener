@@ -304,7 +304,7 @@ func main() {
 	ESUrl := os.Getenv("ES_URL")
 	S3AccessKey := os.Getenv("SPACES_KEY")
 	S3SecurityKey := os.Getenv("SPACES_SECRET")
-	S3SpaceName = os.Getenv("SPACES_NAME") // Space names must be globally unique<Paste>
+	S3SpaceName = os.Getenv("SPACES_NAME") // Space names must be globally unique
 	S3Endpoint = os.Getenv("SPACES_ENDPOINT")
 
 	// TODO: Throw if S3 things aren't defined
