@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -110,19 +111,21 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 			err := db.Save(link)
 			if err != nil {
 				render.Render(w, r, ErrInternalServer(err))
+				return
 			}
 
 			_, err = S3Client.PutObject(S3SpaceName, link.ID, link.File, -1, minio.PutObjectOptions{})
 			if err != nil {
 				render.Render(w, r, ErrInternalServer(err))
+				return
 			}
 			link.URL = "https://" + S3SpaceName + "." + S3Endpoint + "/" + link.ID
-
 		}
 
 		err := db.Save(link)
 		if err != nil {
 			render.Render(w, r, ErrInternalServer(err))
+			return
 		}
 
 		render.Status(r, http.StatusCreated)
@@ -143,6 +146,7 @@ func CreateServer(dbURL string) (*chi.Mux, error) {
 		err := db.Save(link)
 		if err != nil {
 			render.Render(w, r, ErrInternalServer(err))
+			return
 		}
 
 		render.Status(r, http.StatusCreated)
@@ -216,10 +220,12 @@ func Respond(w http.ResponseWriter, r *http.Request, v interface{}) {
 			tpl := templates[t]
 			if tpl == nil {
 				render.Render(w, r, ErrInternalServer(errors.New("template "+t+" not found")))
+				return
 			}
 			err := tpl.ExecuteTemplate(w, "root", v)
 			if err != nil {
 				render.Render(w, r, ErrInternalServer(err))
+				return
 			}
 			return
 		}
@@ -240,6 +246,7 @@ func DecodeMultipart(r io.Reader, params map[string]string, v interface{}) error
 		}
 
 		name := p.FormName()
+		set := false
 		if name == "" {
 			return errors.New("Unknown multipart field")
 		}
@@ -251,10 +258,22 @@ func DecodeMultipart(r io.Reader, params map[string]string, v interface{}) error
 			field := val.Type().Field(i)
 			value := val.Field(i)
 
-			tags := strings.Split(field.Tag.Get("multipart"), ";")
-			if name == tags[0] {
-				value.Set(reflect.ValueOf(p))
+			if tag, ok := field.Tag.Lookup("multipart"); ok {
+				readerType := reflect.TypeOf((*io.Reader)(nil)).Elem()
+				if field.Type.Implements(readerType) {
+					continue
+				}
+				tags := strings.Split(tag, ";")
+				if name == tags[0] {
+					// TODO: This seems to be setting a empty interface rather then the io.Reader that we've received from the client.
+					// This causes empty files to be uploaded to S3.
+					value.Set(reflect.ValueOf(p))
+					set = true
+				}
 			}
+		}
+		if !set {
+			return errors.New("Unknown multipart field: " + name)
 		}
 	}
 
@@ -281,6 +300,19 @@ func Decode(r *http.Request, v interface{}) error {
 }
 
 func init() {
+	var err error
+
+	S3AccessKey := os.Getenv("SPACES_KEY")
+	S3SecurityKey := os.Getenv("SPACES_SECRET")
+	S3SpaceName = os.Getenv("SPACES_NAME") // Space names must be globally unique
+	S3Endpoint = os.Getenv("SPACES_ENDPOINT")
+
+	// TODO: Throw if S3 things aren't defined
+	S3Client, err = minio.New(S3Endpoint, S3AccessKey, S3SecurityKey, true)
+	if err != nil {
+		panic(err)
+	}
+
 	files, err := filepath.Glob("*.html")
 	if err != nil {
 		panic(err)
@@ -302,17 +334,6 @@ func main() {
 	var err error
 
 	ESUrl := os.Getenv("ES_URL")
-	S3AccessKey := os.Getenv("SPACES_KEY")
-	S3SecurityKey := os.Getenv("SPACES_SECRET")
-	S3SpaceName = os.Getenv("SPACES_NAME") // Space names must be globally unique
-	S3Endpoint = os.Getenv("SPACES_ENDPOINT")
-
-	// TODO: Throw if S3 things aren't defined
-	S3Client, err = minio.New(S3Endpoint, S3AccessKey, S3SecurityKey, true)
-	if err != nil {
-		panic(err)
-	}
-
 	if ESUrl == "" {
 		panic(errors.New("ES_URL needs to be set"))
 	}

@@ -475,7 +475,8 @@ func TestFileUpload(t *testing.T) {
 	err = writer.Close()
 	require.NoError(err)
 
-	resp, err := http.Post(server.URL+"/abc", writer.FormDataContentType(), payload)
+	resp, err := http.Post(server.URL, writer.FormDataContentType(), payload)
+	require.NoError(err)
 	require.Equal(201, resp.StatusCode)
 
 	req, err := http.NewRequest("GET", server.URL+"/abc", nil)
