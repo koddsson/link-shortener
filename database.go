@@ -154,7 +154,8 @@ func (db *DB) Migrate(m Model) error {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return errors.New("Could not set mappings for index " + m.Index())
+		bodyBytes, _ := ioutil.ReadAll(response.Body)
+		return errors.New("Could not set mappings for index " + m.Index() + ". Response: " + string(bodyBytes))
 	}
 	return nil
 }
@@ -195,14 +196,17 @@ func (db *DB) Save(m Model) error {
 
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Type().Field(i)
-		tags := strings.Split(field.Tag.Get("db"), ";")
-		name, _ := tags[0], tags[1:]
 
-		if name == "" {
-			name = field.Name
+		if tag, ok := field.Tag.Lookup("db"); ok {
+			tags := strings.Split(tag, ";")
+			name, _ := tags[0], tags[1:]
+
+			if name == "" {
+				name = field.Name
+			}
+
+			record[name] = val.Field(i).Interface()
 		}
-
-		record[name] = val.Field(i).Interface()
 	}
 
 	jsonbytes, err := json.Marshal(record)

@@ -3,16 +3,25 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"time"
 )
 
+type LinkType int
+
+const (
+	TYPE_REDIRECT LinkType = iota
+	TYPE_FILE
+)
+
 // Link describes a link in the database
 type Link struct {
-	ID  string `json:"id" form:"id"`
-	URL string `json:"url" form:"url,omitempty" db:"url;type:text;analyzer:standard"`
+	ID   string    `json:"id" form:"id"`
+	URL  string    `json:"url" form:"url,omitempty" db:"url;type:text;analyzer:standard"`
+	File io.Reader `json:"-" form:"-" multipart:"file"`
 
 	HitCount int64     `json:"-" form:"-" db:"hit_count;type:long"`
 	HitLimit int64     `json:"limit,omitempty" form:"limit,omitempty" db:"hit_limit;type:long"`
@@ -20,6 +29,8 @@ type Link struct {
 
 	// TODO: Rename this? This is the created time.
 	Timestamp time.Time `json:"@timestamp" form:"@timestamp" db:"@timestamp;type:date"`
+
+	Type LinkType `json:"-" form:"-" db:"type;type:long"`
 }
 
 func (link *Link) String() string {
@@ -34,15 +45,20 @@ func (link *Link) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (link *Link) Bind(r *http.Request) error {
-	if link.URL == "" {
+	if link.URL == "" && link.File == nil {
 		return errors.New("Malformed URL")
 	}
-	url, err := url.Parse(link.URL)
-	if err != nil {
-		return err
+	if link.File != nil {
+		link.Type = TYPE_FILE
 	}
-	if url.Host == "" || url.Scheme == "" {
-		return errors.New("Malformed URL")
+	if link.Type == TYPE_REDIRECT {
+		url, err := url.Parse(link.URL)
+		if err != nil {
+			return err
+		}
+		if url.Host == "" || url.Scheme == "" {
+			return errors.New("Malformed URL")
+		}
 	}
 	return nil
 }
